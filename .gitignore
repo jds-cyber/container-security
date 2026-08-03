@@ -12,6 +12,7 @@ cache/
 .DS_Store
 
 # Python
+.venv/
 __pycache__/
 *.pyc
 
