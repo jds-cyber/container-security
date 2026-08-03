@@ -5,5 +5,5 @@ policy:
   max_high: 10
   max_medium: 100
 
-  fail_on:
-    - Critical
+fail_on:
+  - Critical

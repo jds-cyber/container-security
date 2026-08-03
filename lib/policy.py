@@ -9,19 +9,26 @@ def evaluate(summary, policy):
 
     rules = policy["policy"]
 
-    if summary.get("critical", 0) > rules.get("max_critical", 0):
-        failures.append(
-            f"Critical vulnerabilities exceed limit."
-        )
+    fail_on = [
+        severity.lower()
+        for severity in policy.get("fail_on", [])
+    ]
 
-    if summary.get("high", 0) > rules.get("max_high", 0):
-        failures.append(
-            f"High vulnerabilities exceed limit."
-        )
+    if "critical" in fail_on:
+        if summary.get("critical", 0) > rules.get("max_critical", 0):
+            failures.append(
+                f"Critical vulnerabilities exceed limit."
+            )
+    if "high" in fail_on:
+        if summary.get("high", 0) > rules.get("max_high", 0):
+            failures.append(
+                f"High vulnerabilities exceed limit."
+            )
 
-    if summary.get("medium", 0) > rules.get("max_medium", 0):
-        failures.append(
-            f"Medium vulnerabilities exceed limit."
-        )
+    if "medium" in fail_on:
+        if summary.get("medium", 0) > rules.get("max_medium", 0):
+            failures.append(
+                f"Medium vulnerabilities exceed limit."
+            )
 
     return failures

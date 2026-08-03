@@ -14,7 +14,12 @@ def test_policy_failure():
             "max_critical": 0,
             "max_high": 10,
             "max_medium": 100
-        }
+        },
+        "fail_on": [
+            "Critical",
+            "High",
+            "Medium"
+        ]
     }
 
     failures = evaluate(summary, policy)
@@ -57,7 +62,12 @@ def test_policy_detects_security_violations():
             "max_critical": 0,
             "max_high": 10,
             "max_medium": 100,
-        }
+        },
+        "fail_on": [
+            "Critical",
+            "High",
+            "Medium"
+        ]
     }
 
     failures = evaluate(summary, policy)
@@ -65,3 +75,27 @@ def test_policy_detects_security_violations():
     assert "Critical vulnerabilities exceed limit." in failures
     assert "High vulnerabilities exceed limit." in failures
     assert "Medium vulnerabilities exceed limit." in failures
+
+
+def test_policy_respects_fail_on():
+
+    summary = {
+        "critical": 0,
+        "high": 50,
+        "medium": 200
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100
+        },
+        "fail_on": [
+            "Critical",
+        ]
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == []
