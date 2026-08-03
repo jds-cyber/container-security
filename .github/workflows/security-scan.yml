@@ -1,0 +1,64 @@
+---
+name: Container Security Scan
+
+on:
+  push:
+    branches:
+      - main
+      - container-security
+
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          pytest
+
+      - name: Build image
+        run: |
+          docker build -t pywinrm-ansible:dev .
+
+      - name: Install Grype
+        uses: anchore/scan-action/download-grype@v3
+
+      - name: Scan container image
+        run: |
+          mkdir -p reports/latest
+          grype pywinrm-ansible:dev \
+            -o json \
+            > reports/latest/report.json
+
+      - name: Evaluate security policy
+        run: |
+          ./scripts/summarize.py reports/latest/report.json
+
+      - name: Upload security report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grype-report
+          path: reports/latest/
