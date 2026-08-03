@@ -2,37 +2,39 @@
 
 import json
 import sys
-from collections import Counter
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from lib.security import summarize, security_score
+from lib.policy import load_policy, evaluate
 
 if len(sys.argv) != 2:
-    print("Usage: summarize.py <report.json>")
+    print("Usage: summarize.py report.json")
     sys.exit(1)
 
 with open(sys.argv[1]) as f:
     report = json.load(f)
 
-counts = Counter()
+summary = summarize(report["matches"])
+summary["Score"] = security_score(summary)
 
-for match in report.get("matches", []):
-    severity = (
-        match.get("vulnerability", {})
-        .get("severity", "Unknown")
-        .capitalize()
-    )
-    counts[severity] += 1
+policy = load_policy(
+    "config/security_policy.yml"
+)
 
-order = [
-    "Critical",
-    "High",
-    "Medium",
-    "Low",
-    "Negligible",
-    "Unknown",
-]
+failures = evaluate(summary, policy)
 
-summary = {}
+if failures:
+    print("SECURITY POLICY FAILED")
 
-for sev in order:
-    summary[sev] = counts.get(sev, 0)
+    for failure in failures:
+        print(f"- {failure}")
+
+    exit(1)
+
+else:
+    print("SECURITY POLICY PASSED")
 
 print(json.dumps(summary, indent=4))
