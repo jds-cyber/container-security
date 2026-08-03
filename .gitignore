@@ -1,5 +1,7 @@
 # Reports
+reports/latest/
 reports/
+summary.json
 logs/
 
 # SBOMs

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Container Security Report</title>
+
+<style>
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 40px;
+}
+
+.card {
+    border: 1px solid #ccc;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>
+Container Security Report
+</h1>
+
+<div class="card">
+
+<h2>
+Summary
+</h2>
+
+<p>
+Total Findings:
+{{ summary.Total }}
+</p>
+
+<p>
+Critical:
+{{ summary.Critical }}
+</p>
+
+<p>
+High:
+{{ summary.High }}
+</p>
+
+<p>
+Medium:
+{{ summary.Medium }}
+</p>
+
+<p>
+Score:
+{{ summary.Score }}
+</p>
+
+</div>
+
+</body>
+
+</html>

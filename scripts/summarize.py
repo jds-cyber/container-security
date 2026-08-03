@@ -27,14 +27,17 @@ policy = load_policy(
 failures = evaluate(summary, policy)
 
 if failures:
-    print("SECURITY POLICY FAILED")
+    print("SECURITY POLICY FAILED", file=sys.stderr)
 
     for failure in failures:
-        print(f"- {failure}")
-
-    exit(1)
+        print(f"- {failure}", file=sys.stderr)
 
 else:
-    print("SECURITY POLICY PASSED")
+    print("SECURITY POLICY PASSED", file=sys.stderr)
+
 
 print(json.dumps(summary, indent=4))
+
+
+if failures:
+    sys.exit(1)
