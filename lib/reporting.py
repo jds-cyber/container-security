@@ -1,6 +1,74 @@
+import plotly.express as px
+import plotly.io as pio
 from pathlib import Path
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
+
+def severity_bar_chart(summary):
+    data = {
+        "Severity": [
+            "Critical",
+            "High",
+            "Medium",
+            "Low",
+            "Negligible",
+            "Unknown",
+        ],
+        "Count": [
+            summary["critical"],
+            summary["high"],
+            summary["medium"],
+            summary["low"],
+            summary["negligible"],
+            summary["unknown"],
+        ],
+    }
+
+    fig = px.bar(
+        data,
+        x="Severity",
+        y="Count",
+        title="Vulnerability Severity",
+    )
+
+    return pio.to_html(
+        fig,
+        full_html=False,
+        include_plotlyjs="cdn",
+    )
+
+
+def severity_pie_chart(summary):
+
+    data = {
+        "Severity": [
+            "Critical",
+            "High",
+            "Medium",
+            "Low",
+            "Negligible",
+        ],
+        "Count": [
+            summary["critical"],
+            summary["high"],
+            summary["medium"],
+            summary["low"],
+            summary["negligible"],
+        ],
+    }
+
+    fig = px.pie(
+        data,
+        names="Severity",
+        values="Count",
+        title="Severity Distribution",
+    )
+
+    return pio.to_html(
+        fig,
+        full_html=False,
+        include_plotlyjs=False,
+    )
 
 
 def generate_report(summary, output, image_name="Unknown"):
@@ -17,7 +85,9 @@ def generate_report(summary, output, image_name="Unknown"):
         summary=summary,
         image=image_name,
         generated=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        passed=summary["critical"] == 0
+        passed=summary["critical"] == 0,
+        bar_chart=severity_bar_chart(summary),
+        pie_chart=severity_pie_chart(summary),
     )
 
     Path(output).write_text(html)

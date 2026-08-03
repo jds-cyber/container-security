@@ -52,13 +52,26 @@ jobs:
             -o json \
             > reports/latest/report.json
 
-      - name: Evaluate security policy
+      - name: Generate security summary
         run: |
-          ./scripts/summarize.py reports/latest/report.json
+          mkdir -p reports/latest
+          ./scripts/summarize.py \
+            reports/latest/reports.json \
+            > reports/latest/summary.json
+
+      - name: Generate HTML report
+        if: always()
+        run: |
+          ./scripts/report.py \
+            reports/latest/summary.json \
+            reports/latest/report.html
 
       - name: Upload security report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: grype-report
-          path: reports/latest/
+          name: container-security-report
+          path: |
+            reports/latest/report.json
+            reports/latest/summary.json
+            reports/latest/report.html

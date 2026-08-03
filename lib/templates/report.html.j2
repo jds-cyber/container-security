@@ -139,6 +139,20 @@ td,th{
 
         <p>
 
+    <div class="card">
+
+        <h2>Severity Overview</h2>
+        {{ bar_chart | safe }}
+
+    </div>
+
+    <div class="card">
+
+        <h2>Severity Distribution</h2>
+        {{ pie_chart | safe }}
+
+    </div>
+
             <strong>Weighted Risk:</strong>
 
             {{ summary.weighted_risk }}
@@ -156,11 +170,6 @@ td,th{
             <tr>
                 <th>Severity</th>
                 <th>Count</th>
-            </tr>
-
-            <tr>
-                <th>Total Findings</th>
-                <th>{{ summary.findings }}</th>
             </tr>
 
             <tr>
@@ -194,6 +203,11 @@ td,th{
             </tr>
 
             <tr>
+                <th>Total Findings</th>
+                <th>{{ summary.findings }}</th>
+            </tr>
+
+            <tr>
                 <th>Unique Vulnerabilities</th>
                 <th>{{ summary.unique_vulnerabilities }}</th>
             </tr>
@@ -202,10 +216,52 @@ td,th{
 
     </div>
 
+    <div class="card">
+
+        <h2>Executive Summary</h2>
+
+        <p>
+            This container image contains
+            <strong>{{ summary.findings }}</strong>
+            vulnerability findings, representing
+            <strong>{{ summary.unique_vulnerabilities }}</strong>
+            unique vulnerabilities.
+        </p>
+
+        <p>
+            The calculated security score is
+            <strong>{{ summary.security_score }}/100</strong>
+            (Grade {{ summary.grade }}).
+        </p>
+
+        {% if summary.critical > 0 %}
+
+        <p>
+            <strong>Immediate action recommended:</strong>
+            This image contains
+            <strong>{{ summary.critical }}</strong>
+            critical vulnerabilities that should be remediated before deployment.
+        </p>
+
+        {% elif summary.high > 0 %}
+
+        <p>
+            No critical vulnerabilities were detected, but
+            high-severity findings should be addressed promptly.
+        </p>
+
+        {% else %}
+
+        <p>
+            No critical or high-severity vulnerabilities were detected.
+        </p>
+
+    {% endif %}
+
+    </div>
+
     <div class="footer">
-
         Generated automatically by the Container Security Pipeline
-
     </div>
 
 </div>

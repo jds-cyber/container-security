@@ -33,6 +33,7 @@ def test_security_summary():
     assert result["high"] == 1
     assert result["medium"] == 1
     assert result["findings"] == 3
+    assert result["unique_vulnerabilities"] == 3
 
 
 def test_weighted_risk():
@@ -66,3 +67,31 @@ def test_security_score():
     score = security_score(summary)
 
     assert 0 <= score <= 100
+
+
+def test_unique_vulnerabilities():
+
+    matches = [
+        {
+            "vulnerability": {
+                "id": "CVE-001",
+                "severity": "Critical"
+            }
+        },
+        {
+            "vulnerability": {
+                "id": "CVE-001",
+                "severity": "High"
+            }
+        },
+        {
+            "vulnerability": {
+                "id": "CVE-002",
+                "severity": "Medium"
+            }
+        }
+    ]
+
+    result = summarize(matches)
+
+    assert result["unique_vulnerabilities"] == 2

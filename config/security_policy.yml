@@ -1,4 +1,5 @@
 ---
+# TODO(JDS): Update thresholds to reflect GMI requirements.
 policy:
   max_critical: 0
   max_high: 10
@@ -6,4 +7,3 @@ policy:
 
   fail_on:
     - Critical
-
