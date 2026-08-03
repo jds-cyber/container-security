@@ -20,7 +20,8 @@ with open(sys.argv[1]) as f:
 
 generate_report(
     summary,
-    sys.argv[2]
+    sys.argv[2],
+    image_name="pywinrm-ansible:dev"
 )
 
 print(

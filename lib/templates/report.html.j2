@@ -1,20 +1,79 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+<meta charset="utf-8">
 <title>Container Security Report</title>
 
 <style>
 
-body {
+body{
     font-family: Arial, sans-serif;
-    margin: 40px;
+    background:#f4f4f4;
+    margin:40px;
+    color:#333;
 }
 
-.card {
-    border: 1px solid #ccc;
-    padding: 20px;
-    margin-bottom: 20px;
+.container{
+    max-width:900px;
+    margin:auto;
+}
+
+.card{
+    background:white;
+    border-radius:8px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 2px 6px rgba(0,0,0,.15);
+}
+
+h1,h2{
+    margin-top:0;
+}
+
+.metric{
+    font-size:3em;
+    font-weight:bold;
+    color:#1f4e79;
+    margin:10px 0;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+}
+
+th{
+    background:#f0f0f0;
+    text-align:left;
+}
+
+td,th{
+    padding:10px;
+    border-bottom:1px solid #ddd;
+}
+
+.status-pass{
+    color:#198754;
+    font-weight:bold;
+}
+
+.status-fail{
+    color:#dc3545;
+    font-weight:bold;
+}
+
+.grade{
+    font-size:1.5em;
+    font-weight:bold;
+}
+
+.footer{
+    text-align:center;
+    color:#777;
+    font-size:.9em;
+    margin-top:30px;
 }
 
 </style>
@@ -23,43 +82,133 @@ body {
 
 <body>
 
-<h1>
-Container Security Report
-</h1>
+<div class="container">
 
-<div class="card">
+    <div class="card">
 
-<h2>
-Summary
-</h2>
+        <h1>Container Security Report</h1>
 
-<p>
-Total Findings:
-{{ summary.Total }}
-</p>
+        <p><strong>Container Image:</strong> {{ image }}</p>
 
-<p>
-Critical:
-{{ summary.Critical }}
-</p>
+        <p><strong>Generated:</strong> {{ generated }}</p>
 
-<p>
-High:
-{{ summary.High }}
-</p>
+        <p>
+            <strong>Policy Status:</strong>
 
-<p>
-Medium:
-{{ summary.Medium }}
-</p>
+            {% if passed %}
+                <span class="status-pass">PASS</span>
+            {% else %}
+                <span class="status-fail">FAIL</span>
+            {% endif %}
+        </p>
 
-<p>
-Score:
-{{ summary.Score }}
-</p>
+    </div>
+
+    <div class="card">
+
+        <h2>Overall Security Score</h2>
+
+        <div class="metric">
+            {{ summary.security_score }} / 100
+        </div>
+
+        <p>
+            <strong>Security Grade:</strong>
+
+            <span class="grade">
+
+                {% if summary.grade == "A" %}
+                    <span class="status-pass">A</span>
+
+                {% elif summary.grade == "B" %}
+                    <span style="color:#2E8B57;font-weight:bold;">B</span>
+
+                {% elif summary.grade == "C" %}
+                    <span style="color:#DAA520;font-weight:bold;">C</span>
+
+                {% elif summary.grade == "D" %}
+                    <span style="color:#FF8C00;font-weight:bold;">D</span>
+
+                {% else %}
+                    <span class="status-fail">F</span>
+
+                {% endif %}
+
+            </span>
+        </p>
+
+        <p>
+
+            <strong>Weighted Risk:</strong>
+
+            {{ summary.weighted_risk }}
+
+        </p>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Severity Summary</h2>
+
+        <table>
+
+            <tr>
+                <th>Severity</th>
+                <th>Count</th>
+            </tr>
+
+            <tr>
+                <th>Total Findings</th>
+                <th>{{ summary.findings }}</th>
+            </tr>
+
+            <tr>
+                <td>Critical</td>
+                <td>{{ summary.critical }}</td>
+            </tr>
+
+            <tr>
+                <td>High</td>
+                <td>{{ summary.high }}</td>
+            </tr>
+
+            <tr>
+                <td>Medium</td>
+                <td>{{ summary.medium }}</td>
+            </tr>
+
+            <tr>
+                <td>Low</td>
+                <td>{{ summary.low }}</td>
+            </tr>
+
+            <tr>
+                <td>Negligible</td>
+                <td>{{ summary.negligible }}</td>
+            </tr>
+
+            <tr>
+                <td>Unknown</td>
+                <td>{{ summary.unknown }}</td>
+            </tr>
+
+            <tr>
+                <th>Unique Vulnerabilities</th>
+                <th>{{ summary.unique_vulnerabilities }}</th>
+            </tr>
+
+        </table>
+
+    </div>
+
+    <div class="footer">
+
+        Generated automatically by the Container Security Pipeline
+
+    </div>
 
 </div>
 
 </body>
-
 </html>

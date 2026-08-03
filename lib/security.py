@@ -1,52 +1,89 @@
+def empty_summary():
+    """
+    Create an empty vulnerability summary.
+    """
+
+    return {
+        "findings": 0,
+        "unique_vulnerabilities": 0,
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "negligible": 0,
+        "unknown": 0,
+        "weighted_risk": "",
+        "security_score": 0,
+        "grade": 0
+    }
+
 def summarize(matches):
     """
     Extract vulnerability summary counts from Grype matches.
     """
+    summary = empty_summary()
 
-    summary = {
-    "Findings": len(matches),
-    "Unique Vulnerabilities": len(
-        set(
-            match.get("vulnerability", {})
-            .get("id")
+    summary["findings"] = len(matches)
+    summary["unique_vulnerabilities"] = len(
+        {
+            match.get("vulnerability", {}).get("id")
             for match in matches
-        )
-    ),
-    "Critical": 0,
-    "High": 0,
-    "Medium": 0,
-    "Low": 0,
-    "Negligible": 0,
-    "Unknown": 0,
-}
+            if match.get("vulnerability", {}).get("id")
+        }
+    )
 
     for match in matches:
         severity = (
             match.get("vulnerability", {})
-            .get("severity", "Unknown")
-            .capitalize()
+            .get("severity", "unknown")
+            .lower()
         )
 
         if severity in summary:
             summary[severity] += 1
         else:
-            summary["Unknown"] += 1
+            summary["unknown"] += 1
 
     return summary
 
 
-def security_score(summary):
+def weighted_risk(summary):
     """
-    Calculate a simple risk score.
-
-    Higher score = higher risk.
+    Calculate the weighted risk based on vulnerability severity.
     """
 
-    score = (
-        summary.get("Critical", 0) * 10 +
-        summary.get("High", 0) * 5 +
-        summary.get("Medium", 0) * 2 +
-        summary.get("Low", 0)
+    return (
+        summary.get("critical", 0) * 10
+        + summary.get("high", 0) * 5
+        + summary.get("medium", 0) * 2
+        + summary.get("low", 0)
     )
 
-    return score
+
+def security_score(summary):
+    """
+    Convert the weighted risk into a normalized score (0–100).
+
+    Higher score = better security.
+    """
+
+    risk = weighted_risk(summary)
+
+    return round(100 / (1 + (risk / 100)))
+
+
+def security_grade(score):
+    """
+    Convert a security score into a letter grade.
+    """
+
+    if score >= 90:
+        return "A"
+    elif score >= 80:
+        return "B"
+    elif score >= 70:
+        return "C"
+    elif score >= 60:
+        return "D"
+    else:
+        return "F"

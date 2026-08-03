@@ -1,4 +1,8 @@
-from lib.security import summarize, security_score
+from lib.security import (
+    summarize,
+    weighted_risk,
+    security_score
+)
 
 
 def test_security_summary():
@@ -25,26 +29,40 @@ def test_security_summary():
 
     result = summarize(matches)
 
-    assert result["Critical"] == 1
-    assert result["High"] == 1
-    assert result["Medium"] == 1
-    assert result["Findings"] == 3
+    assert result["critical"] == 1
+    assert result["high"] == 1
+    assert result["medium"] == 1
+    assert result["findings"] == 3
 
 
-def test_security_score():
+def test_weighted_risk():
 
     summary = {
-        "Critical": 2,
-        "High": 3,
-        "Medium": 4,
-        "Low": 5
+        "critical": 2,
+        "high": 3,
+        "medium": 4,
+        "low": 5,
     }
 
-    score = security_score(summary)
+    risk = weighted_risk(summary)
 
-    assert score == (
+    assert risk == (
         2 * 10 +
         3 * 5 +
         4 * 2 +
         5
     )
+
+
+def test_security_score():
+
+    summary = {
+        "critical": 2,
+        "high": 3,
+        "medium": 4,
+        "low": 5,
+    }
+
+    score = security_score(summary)
+
+    assert 0 <= score <= 100
