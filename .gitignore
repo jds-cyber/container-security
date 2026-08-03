@@ -1,0 +1,24 @@
+# Reports
+reports/
+logs/
+
+# SBOMs
+sbom/
+
+# Cache
+cache/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary
+*.tmp
+*.bak
