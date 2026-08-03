@@ -1,75 +1,72 @@
 #!/bin/bash
 
+set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 source "$SCRIPT_DIR/common.sh"
-init_log
-log "Scan started"
 
-IMAGE="$1"
+IMAGE="${1:-}"
 
-if [ -z "$IMAGE" ]; then
-    echo "Usage: $0 <docker-image>"
+if [[ -z "$IMAGE" ]]; then
+    error "Usage: ./scripts/scan.sh <docker-image>"
     exit 1
 fi
 
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-REPORT_DIR="grype-reports"
+init_log
 
-mkdir -p "$REPORT_DIR"
+SCAN_ID=$(date +"%Y-%m-%d_%H%M%S")
+SCAN_DIR="$ROOT_DIR/$REPORT_DIR/$SCAN_ID"
 
-TABLE_REPORT="${REPORT_DIR}/${IMAGE//[:\/]/_}_${TIMESTAMP}.txt"
-JSON_REPORT="${REPORT_DIR}/${IMAGE//[:\/]/_}_${TIMESTAMP}.json"
-HTML_REPORT="${REPORT_DIR}/${IMAGE//[:\/]/_}_${TIMESTAMP}.html"
+mkdir -p "$SCAN_DIR"
 
-GRYPE_IMAGE="registry.access.redhat.com/hi/grype:latest"
+TABLE_REPORT="$SCAN_DIR/report.txt"
+JSON_REPORT="$SCAN_DIR/report.json"
 
-echo "Updating vulnerability database..."
+info "Starting security scan"
+log "Starting scan for image: $IMAGE"
+
+info "Running environment validation..."
+"$SCRIPT_DIR/validate.sh" >>"$LOG_FILE" 2>&1
+
+success "Environment validation passed"
+
+info "Updating Grype vulnerability database..."
 
 docker run --rm \
   -e SSL_CERT_FILE=/tmp/zscaler-root-ca.crt \
-  -v "$(pwd)/zscaler-root-ca.crt:/tmp/zscaler-root-ca.crt:ro" \
-  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "$ROOT_DIR/$CERT_FILE:/tmp/zscaler-root-ca.crt:ro" \
   "$GRYPE_IMAGE" \
-  db update
+  db update >>"$LOG_FILE" 2>&1
 
-echo "Scanning image: $IMAGE"
+success "Database is current"
 
-# Table output
+info "Scanning image..."
+
 docker run --rm \
   -e SSL_CERT_FILE=/tmp/zscaler-root-ca.crt \
-  -v "$(pwd)/zscaler-root-ca.crt:/tmp/zscaler-root-ca.crt:ro" \
+  -v "$ROOT_DIR/$CERT_FILE:/tmp/zscaler-root-ca.crt:ro" \
   -v /var/run/docker.sock:/var/run/docker.sock \
   "$GRYPE_IMAGE" \
-  "$IMAGE" \
-  -o table | tee "$TABLE_REPORT"
+  "docker:$IMAGE" \
+  -o table > "$TABLE_REPORT"
 
-
-# JSON output
 docker run --rm \
   -e SSL_CERT_FILE=/tmp/zscaler-root-ca.crt \
-  -v "$(pwd)/zscaler-root-ca.crt:/tmp/zscaler-root-ca.crt:ro" \
+  -v "$ROOT_DIR/$CERT_FILE:/tmp/zscaler-root-ca.crt:ro" \
   -v /var/run/docker.sock:/var/run/docker.sock \
   "$GRYPE_IMAGE" \
-  "$IMAGE" \
+  "docker:$IMAGE" \
   -o json > "$JSON_REPORT"
 
+success "Scan completed"
 
-# HTML output
-docker run --rm \
-  -e SSL_CERT_FILE=/tmp/zscaler-root-ca.crt \
-  -v "$(pwd)/zscaler-root-ca.crt:/tmp/zscaler-root-ca.crt:ro" \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  "$GRYPE_IMAGE" \
-  "$IMAGE" \
-  -o template \
-  -t /opt/grype/templates/html.tmpl > "$HTML_REPORT"
-
-
-echo ""
-echo "===================================="
-echo "Reports created:"
-echo "------------------------------------"
-echo "Table : $TABLE_REPORT"
-echo "JSON  : $JSON_REPORT"
-echo "HTML  : $HTML_REPORT"
-echo "===================================="
+echo
+echo "=========================================="
+echo "Container Security Toolkit"
+echo "=========================================="
+echo "Image   : $IMAGE"
+echo "Reports : $SCAN_DIR"
+echo "Log     : $LOG_FILE"
+echo "=========================================="
