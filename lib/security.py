@@ -12,9 +12,10 @@ def empty_summary():
         "low": 0,
         "negligible": 0,
         "unknown": 0,
-        "weighted_risk": "",
+        "weighted_risk": 0,
         "security_score": 0,
-        "grade": 0
+        "grade": "",
+        "risk_level": "",
     }
 
 def summarize(matches):
@@ -87,3 +88,20 @@ def security_grade(score):
         return "D"
     else:
         return "F"
+
+
+def risk_level(score):
+    """
+    Convert security score into a risk classification.
+
+    High score = better security.
+    """
+
+    if score >= 90:
+        return "LOW"
+    elif score >= 70:
+        return "MODERATE"
+    elif score >= 50:
+        return "HIGH"
+    else:
+        return "CRITICAL"

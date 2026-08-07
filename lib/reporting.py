@@ -3,6 +3,7 @@ import plotly.io as pio
 from pathlib import Path
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
+from lib.trends import load_history
 
 def severity_bar_chart(summary):
     data = {
@@ -71,6 +72,43 @@ def severity_pie_chart(summary):
     )
 
 
+def security_score_trend():
+    """
+    Build a security score trend.
+    """
+
+    history = load_history()
+
+    if not history:
+        return ""
+
+    scores = [
+        report["security_score"]
+        for report in history
+    ]
+
+    x = [
+        report["scan"]
+        for report in history
+    ]
+
+    fig = px.line(
+        x=x,
+        y=scores,
+        labels={
+            "x": "Scan",
+            "y": "Security Score"
+        },
+        markers=True,
+        title="Security Score Trend"
+    )
+
+    return fig.to_html(
+        full_html=False,
+        include_plotlyjs=False
+    )
+
+
 def generate_report(summary, output, image_name="Unknown"):
 
     template_dir = Path(__file__).parent / "templates"
@@ -88,6 +126,7 @@ def generate_report(summary, output, image_name="Unknown"):
         passed=summary["critical"] == 0,
         bar_chart=severity_bar_chart(summary),
         pie_chart=severity_pie_chart(summary),
+        trend_chart=security_score_trend(),
     )
 
     Path(output).write_text(html)

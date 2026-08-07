@@ -13,5 +13,6 @@ report:
 	./scripts/report.py reports/latest/summary.json reports/latest/report.html
 
 security-report:
-	-$(MAKE) scan || true
+	# Continue generating the report even if policy evaluation fails.
+	-$(MAKE) scan REPORT=$(REPORT)
 	$(MAKE) report

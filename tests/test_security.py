@@ -1,7 +1,10 @@
 from lib.security import (
     summarize,
     weighted_risk,
-    security_score
+    security_score,
+    security_grade,
+    risk_level,
+    empty_summary,
 )
 
 
@@ -95,3 +98,40 @@ def test_unique_vulnerabilities():
     result = summarize(matches)
 
     assert result["unique_vulnerabilities"] == 2
+
+
+def test_empty_summary():
+    """
+    This ensures your default dictionary does not accidentally change.
+    """
+
+    summary = empty_summary()
+
+    assert summary["findings"] == 0
+    assert summary["unique_vulnerabilities"] == 0
+    assert summary["critical"] == 0
+    assert summary["security_score"] == 0
+    assert summary["grade"] == ""
+
+
+def test_security_grade():
+    """
+    This verifies scoring classification.
+    """
+
+    assert security_grade(95) == "A"
+    assert security_grade(85) == "B"
+    assert security_grade(75) == "C"
+    assert security_grade(65) == "D"
+    assert security_grade(40) == "F"
+
+
+def test_risk_level():
+    """
+    This verifies risk classification.
+    """
+
+    assert risk_level(95) == "LOW"
+    assert risk_level(75) == "MODERATE"
+    assert risk_level(55) == "HIGH"
+    assert risk_level(25) == "CRITICAL"
