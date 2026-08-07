@@ -6,6 +6,7 @@ def empty_summary():
     return {
         "findings": 0,
         "unique_vulnerabilities": 0,
+        "vulnerability_ids": [],
         "critical": 0,
         "high": 0,
         "medium": 0,
@@ -25,13 +26,15 @@ def summarize(matches):
     summary = empty_summary()
 
     summary["findings"] = len(matches)
-    summary["unique_vulnerabilities"] = len(
-        {
+
+    vulnerability_ids = {
             match.get("vulnerability", {}).get("id")
             for match in matches
             if match.get("vulnerability", {}).get("id")
         }
-    )
+
+    summary["unique_vulnerabilities"] = len(vulnerability_ids)
+    summary["vulnerability_ids"] = sorted(vulnerability_ids)
 
     for match in matches:
         severity = (

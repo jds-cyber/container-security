@@ -16,7 +16,6 @@ from lib.security import (
     risk_level,
 )
 from lib.policy import load_policy, evaluate
-from lib.history import save_history
 
 parser = argparse.ArgumentParser(description="Summarize container security scan results")
 
@@ -46,8 +45,6 @@ summary["weighted_risk"] = weighted_risk(summary)
 summary["security_score"] = security_score(summary)
 summary["grade"] = security_grade(summary["security_score"])
 summary["risk_level"] = risk_level(summary["security_score"])
-
-save_history(summary)
 
 policy = load_policy(args.policy)
 

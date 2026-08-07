@@ -1,4 +1,4 @@
-from lib.comparison import compare_scores
+from lib.comparison import compare_scores, compare_vulnerabilities
 
 
 def test_compare_scores_improved():
@@ -32,3 +32,32 @@ def test_compare_scores_no_change():
 
     assert result["delta"] == 0
     assert result["trend"] == "No Change"
+
+
+
+def test_compare_vulnerabilities():
+
+    previous = {
+        "vulnerability_ids": [
+            "CVE-2026-9538",
+            "CVE-2026-9547",
+            "CVE-2026-9669"
+        ]
+    }
+
+    current = {
+        "vulnerability_ids": [
+            "CVE-2026-9547",
+            "CVE-2026-9669",
+            "CVE-2026-8932"
+        ]
+    }
+
+    result = compare_vulnerabilities(previous, current)
+
+    assert result["new"] == ["CVE-2026-8932"]
+    assert result["fixed"] == ["CVE-2026-9538"]
+    assert result["unchanged"] == [
+        "CVE-2026-9547",
+        "CVE-2026-9669"
+    ]

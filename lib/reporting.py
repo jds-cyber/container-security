@@ -4,6 +4,8 @@ from pathlib import Path
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from lib.trends import load_history
+from lib.comparison import compare_scores, compare_vulnerabilities
+
 
 def severity_bar_chart(summary):
     data = {
@@ -109,7 +111,7 @@ def security_score_trend():
     )
 
 
-def generate_report(summary, output, image_name="Unknown"):
+def generate_report(summary, output, image_name="Unknown", previous_summary=None):
 
     template_dir = Path(__file__).parent / "templates"
 
@@ -117,11 +119,14 @@ def generate_report(summary, output, image_name="Unknown"):
         loader=FileSystemLoader(template_dir)
     )
 
+    comparison = security_comparison(previous_summary, summary)
+
     template = env.get_template("report.html.j2")
 
     html = template.render(
         summary=summary,
         image=image_name,
+        comparison=comparison,
         generated=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         passed=summary["critical"] == 0,
         bar_chart=severity_bar_chart(summary),
@@ -130,3 +135,20 @@ def generate_report(summary, output, image_name="Unknown"):
     )
 
     Path(output).write_text(html)
+
+
+def security_comparison(previous, current):
+    """
+    Build security comparison data between two scans.
+    """
+
+    if previous is None:
+        return None
+
+    score_comparison = compare_scores(previous, current)
+    vulnerability_comparison = compare_vulnerabilities(previous, current)
+
+    return {
+        "score": score_comparison,
+        "vulnerabilities": vulnerability_comparison
+    }

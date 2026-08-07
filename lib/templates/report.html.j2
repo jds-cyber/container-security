@@ -83,40 +83,28 @@ td,th{
 <body>
 
 <div class="container">
-
     <div class="card">
-
         <h1>Container Security Report</h1>
-
         <p><strong>Container Image:</strong> {{ image }}</p>
-
         <p><strong>Generated:</strong> {{ generated }}</p>
-
         <p>
             <strong>Policy Status:</strong>
-
             {% if passed %}
                 <span class="status-pass">PASS</span>
             {% else %}
                 <span class="status-fail">FAIL</span>
             {% endif %}
         </p>
-
     </div>
 
     <div class="card">
-
         <h2>Overall Security Score</h2>
-
         <div class="metric">
             {{ summary.security_score }} / 100
         </div>
-
         <p>
             <strong>Security Grade:</strong>
-
             <span class="grade">
-
                 {% if summary.grade == "A" %}
                     <span class="status-pass">A</span>
 
@@ -131,95 +119,105 @@ td,th{
 
                 {% else %}
                     <span class="status-fail">F</span>
-
                 {% endif %}
-
             </span>
         </p>
-
         <p>
+        <strong>Weighted Risk:</strong>
+            {{ summary.weighted_risk }}
+        </p>
+    </div>
 
     <div class="card">
+        <h2>Security Comparison</h2>
+        {% if comparison %}
+            <p>
+                <strong>Previous Score:</strong>
+                {{ comparison.score.previous }}
+            </p>
+            <p>
+                <strong>Current Score:</strong>
+                {{ comparison.score.current }}
+            </p>
+            <p>
+                <strong>Change:</strong>
+                {{ comparison.score.delta }}
+            </p>
+            <p>
+                <strong>Trend:</strong>
+                {{ comparison.score.trend }}
+            </p>
+            <p>
+                <strong>New Vulnerabilities:</strong>
+                {{ comparison.vulnerabilities.new | length }}
+            </p>
+            <p>
+                <strong>Fixed Vulnerabilities:</strong>
+                {{ comparison.vulnerabilities.fixed | length }}
+            </p>
+            <p>
+                <strong>Unchanged Vulnerabilities:</strong>
+                {{ comparison.vulnerabilities.unchanged | length }}
+            </p>
+        {% else %}
+            <p>No previous scan available for comparison.</p>
+        {% endif %}
+    </div>
 
+    <div class="card">
         <h2>Severity Overview</h2>
         {{ bar_chart | safe }}
-
     </div>
 
     <div class="card">
-
         <h2>Severity Distribution</h2>
         {{ pie_chart | safe }}
-
-    </div>
-
-            <strong>Weighted Risk:</strong>
-
-            {{ summary.weighted_risk }}
-
-        </p>
-
     </div>
 
     <div class="card">
-
         <h2>Severity Summary</h2>
-
         <table>
-
             <tr>
                 <th>Severity</th>
                 <th>Count</th>
             </tr>
-
             <tr>
                 <td>Critical</td>
                 <td>{{ summary.critical }}</td>
             </tr>
-
             <tr>
                 <td>High</td>
                 <td>{{ summary.high }}</td>
             </tr>
-
             <tr>
                 <td>Medium</td>
                 <td>{{ summary.medium }}</td>
             </tr>
-
             <tr>
                 <td>Low</td>
                 <td>{{ summary.low }}</td>
             </tr>
-
             <tr>
                 <td>Negligible</td>
                 <td>{{ summary.negligible }}</td>
             </tr>
-
             <tr>
                 <td>Unknown</td>
                 <td>{{ summary.unknown }}</td>
             </tr>
-
             <tr>
                 <th>Total Findings</th>
                 <th>{{ summary.findings }}</th>
             </tr>
-
             <tr>
                 <th>Unique Vulnerabilities</th>
                 <th>{{ summary.unique_vulnerabilities }}</th>
             </tr>
-
         </table>
-
     </div>
 
     <div class="card">
-
         <h2>Executive Summary</h2>
-
         <p>
             This container image contains
             <strong>{{ summary.findings }}</strong>
@@ -227,51 +225,38 @@ td,th{
             <strong>{{ summary.unique_vulnerabilities }}</strong>
             unique vulnerabilities.
         </p>
-
         <p>
             The calculated security score is
             <strong>{{ summary.security_score }}/100</strong>
             (Grade {{ summary.grade }}).
         </p>
-
         {% if summary.critical > 0 %}
-
         <p>
             <strong>Immediate action recommended:</strong>
             This image contains
             <strong>{{ summary.critical }}</strong>
             critical vulnerabilities that should be remediated before deployment.
         </p>
-
         {% elif summary.high > 0 %}
-
         <p>
             No critical vulnerabilities were detected, but
             high-severity findings should be addressed promptly.
         </p>
-
         {% else %}
-
         <p>
             No critical or high-severity vulnerabilities were detected.
         </p>
-
     {% endif %}
+    </div>
 
+    <div class="card">
+    <h2>Security Score Trend</h2>
+    {{ trend_chart | safe }}
     </div>
 
     <div class="footer">
         Generated automatically by the Container Security Pipeline
     </div>
-
-    <div class="card">
-
-    <h2>Security Score Trend</h2>
-
-    {{ trend_chart | safe }}
-
-    </div>
-
 </div>
 
 </body>

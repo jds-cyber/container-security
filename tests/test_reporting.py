@@ -1,6 +1,6 @@
-from pathlib import Path
-from lib.reporting import generate_report, load_history
 import json
+from pathlib import Path
+from lib.reporting import generate_report, load_history, security_comparison
 
 
 def test_generate_report(tmp_path):
@@ -58,3 +58,33 @@ def test_load_history_includes_scan_name(tmp_path):
     assert len(history) == 1
     assert history[0]["scan"] == "2026-08-05_scan"
     assert history[0]["security_score"] == 90
+
+
+def test_security_comparison():
+
+    previous = {
+        "security_score": 70,
+        "vulnerability_ids": [
+            "CVE-2017-0144",
+            "CVE-2021-44228"
+        ]
+    }
+
+    current = {
+        "security_score": 85,
+        "vulnerability_ids": [
+            "CVE-2014-0160",
+            "CVE-2021-44228"
+        ]
+    }
+
+    result = security_comparison(previous, current)
+
+    assert result["score"]["previous"] == 70
+    assert result["score"]["current"] == 85
+    assert result["score"]["delta"] == 15
+    assert result["score"]["trend"] == "Improved"
+
+    assert result["vulnerabilities"]["new"] == ["CVE-2014-0160"]
+    assert result["vulnerabilities"]["fixed"] == ["CVE-2017-0144"]
+    assert result["vulnerabilities"]["unchanged"] == ["CVE-2021-44228"]
