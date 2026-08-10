@@ -4,7 +4,11 @@ from pathlib import Path
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from lib.trends import load_history
-from lib.comparison import compare_scores, compare_vulnerabilities
+from lib.comparison import (
+    compare_scores,
+    compare_vulnerabilities,
+    compare_severity,
+)
 
 
 def severity_bar_chart(summary):
@@ -147,8 +151,37 @@ def security_comparison(previous, current):
 
     score_comparison = compare_scores(previous, current)
     vulnerability_comparison = compare_vulnerabilities(previous, current)
+    severity_comparison = compare_severity(previous, current)
+
+    severity_improved = 0
+    severity_regressed = 0
+    severity_unchanged = 0
+
+    for severity in [
+        "critical",
+        "high",
+        "medium",
+        "low",
+        "negligible",
+        "unknown"
+    ]:
+
+        delta = severity_comparison[severity]["delta"]
+
+        if delta < 0:
+            severity_improved += abs(delta)
+        elif delta > 0:
+            severity_regressed += delta
+        else:
+            severity_unchanged += 1
 
     return {
         "score": score_comparison,
-        "vulnerabilities": vulnerability_comparison
+        "vulnerabilities": vulnerability_comparison,
+        "severity": severity_comparison,
+        "severity_summary": {
+            "improved": severity_improved,
+            "regressed": severity_regressed,
+            "unchanged": severity_unchanged,
+        },
     }

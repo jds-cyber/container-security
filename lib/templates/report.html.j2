@@ -79,8 +79,17 @@ td,th{
 </style>
 
 </head>
-
 <body>
+
+{% macro severity_change(delta) %}
+    {% if delta < 0 %}
+        <span class="status-pass">{{ delta }}</span>
+    {% elif delta > 0 %}
+        <span class="status-fail">+{{ delta }}</span>
+    {% else %}
+        <span>{{ delta }}</span>
+    {% endif %}
+{% endmacro %}
 
 <div class="container">
     <div class="card">
@@ -159,6 +168,61 @@ td,th{
                 <strong>Unchanged Vulnerabilities:</strong>
                 {{ comparison.vulnerabilities.unchanged | length }}
             </p>
+            <p>
+                <strong>Severity Findings Removed:</strong>
+                {{ comparison.severity_summary.improved }}
+            </p>
+            <p>
+                <strong>Severity Findings Added:</strong>
+                {{ comparison.severity_summary.regressed }}
+            </p>
+
+            <h3 style="margin-top: 25px;">Severity Comparison</h3>
+            <table>
+                <tr>
+                    <th>Severity</th>
+                    <th>Previous</th>
+                    <th>Current</th>
+                    <th>Change</th>
+                </tr>
+                <tr>
+                    <td>Critical</td>
+                    <td>{{ comparison.severity.critical.previous }}</td>
+                    <td>{{ comparison.severity.critical.current }}</td>
+                    <td>{{ severity_change(comparison.severity.critical.delta) }}</td>
+                </tr>
+                <tr>
+                    <td>High</td>
+                    <td>{{ comparison.severity.high.previous }}</td>
+                    <td>{{ comparison.severity.high.current }}</td>
+                    <td>{{ severity_change(comparison.severity.high.delta) }}</td>
+                </tr>
+                <tr>
+                    <td>Medium</td>
+                    <td>{{ comparison.severity.medium.previous }}</td>
+                    <td>{{ comparison.severity.medium.current }}</td>
+                    <td>{{ severity_change(comparison.severity.medium.delta) }}</td>
+                </tr>
+                <tr>
+                    <td>Low</td>
+                    <td>{{ comparison.severity.low.previous }}</td>
+                    <td>{{ comparison.severity.low.current }}</td>
+                    <td>{{ severity_change(comparison.severity.low.delta) }}</td>
+                </tr>
+                <tr>
+                    <td>Negligible</td>
+                    <td>{{ comparison.severity.negligible.previous }}</td>
+                    <td>{{ comparison.severity.negligible.current }}</td>
+                    <td>{{ severity_change(comparison.severity.negligible.delta) }}</td>
+                </tr>
+                <tr>
+                    <td>Unknown</td>
+                    <td>{{ comparison.severity.unknown.previous }}</td>
+                    <td>{{ comparison.severity.unknown.current }}</td>
+                    <td>{{ severity_change(comparison.severity.unknown.delta) }}</td>
+                </tr>
+            </table>
+
         {% else %}
             <p>No previous scan available for comparison.</p>
         {% endif %}

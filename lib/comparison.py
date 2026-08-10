@@ -36,3 +36,32 @@ def compare_vulnerabilities(previous, current):
         "fixed": sorted(previous_ids - current_ids),
         "unchanged": sorted(previous_ids & current_ids)
     }
+
+
+def compare_severity(previous, current):
+    """
+    Compare vulnerability severity counts between two scans.
+    """
+
+    severities = [
+        "critical",
+        "high",
+        "medium",
+        "low",
+        "negligible",
+        "unknown"
+    ]
+
+    comparison = {}
+
+    for severity in severities:
+        previous_count = previous.get(severity, 0)
+        current_count = current.get(severity, 0)
+
+        comparison[severity] = {
+            "previous": previous_count,
+            "current": current_count,
+            "delta": current_count - previous_count,
+        }
+
+    return comparison
