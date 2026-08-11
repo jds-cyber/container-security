@@ -1,8 +1,48 @@
 import yaml
 
+
 def load_policy(path):
-    with open(path, "r") as file:
-        return yaml.safe_load(file)
+    try:
+        with open(path, "r") as file:
+            policy = yaml.safe_load(file)
+    except FileNotFoundError:
+        raise ValueError(f"Policy file not found: {path}")
+    except yaml.YAMLError as exc:
+        raise ValueError(f"Invalid policy YAML: {exc}")
+
+    if not isinstance(policy, dict):
+        raise ValueError("Invalid policy configuration")
+
+    if "policy" not in policy:
+        raise ValueError("Invalid policy configuration: missing 'policy' section")
+
+    rules = policy["policy"]
+
+    if not isinstance(rules, dict):
+        raise ValueError("Invalid policy configuration: 'policy' must be a mapping")
+
+    for key in ("max_critical", "max_high", "max_medium"):
+        if key in rules:
+            value = rules[key]
+
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise ValueError(
+                    f"Invalid policy configuration: '{key}' must be an integer"
+                )
+
+            if value < 0:
+                raise ValueError(
+                    f"Invalid policy configuration: '{key}' cannot be negative"
+                )
+
+    if "fail_on" in policy:
+        if not isinstance(policy["fail_on"], list):
+            raise ValueError(
+                "Invalid policy configuration: 'fail_on' must be a list"
+            )
+
+    return policy
+
 
 def evaluate(summary, policy):
     failures = []
@@ -17,18 +57,19 @@ def evaluate(summary, policy):
     if "critical" in fail_on:
         if summary.get("critical", 0) > rules.get("max_critical", 0):
             failures.append(
-                f"Critical vulnerabilities exceed limit."
+                "Critical vulnerabilities exceed limit."
             )
+
     if "high" in fail_on:
         if summary.get("high", 0) > rules.get("max_high", 0):
             failures.append(
-                f"High vulnerabilities exceed limit."
+                "High vulnerabilities exceed limit."
             )
 
     if "medium" in fail_on:
         if summary.get("medium", 0) > rules.get("max_medium", 0):
             failures.append(
-                f"Medium vulnerabilities exceed limit."
+                "Medium vulnerabilities exceed limit."
             )
 
     return failures
