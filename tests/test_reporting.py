@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
-from lib.reporting import generate_report, load_history, security_comparison
+from lib.reporting import generate_report, security_comparison
+from lib.trends import load_history
 
 
 def test_generate_report(tmp_path):
@@ -35,6 +36,8 @@ def test_generate_report(tmp_path):
     assert "test-image" in content
     assert "85" in content
     assert "B" in content
+    assert "Scan Information" in content
+    assert "Scan Timestamp" in content
 
 
 def test_load_history_includes_scan_name(tmp_path):
@@ -88,3 +91,16 @@ def test_security_comparison():
     assert result["vulnerabilities"]["new"] == ["CVE-2014-0160"]
     assert result["vulnerabilities"]["fixed"] == ["CVE-2017-0144"]
     assert result["vulnerabilities"]["unchanged"] == ["CVE-2021-44228"]
+
+
+def test_security_comparison_without_previous_scan():
+
+    current = {
+        "security_score": 85,
+        "vulnerability_ids": [
+            "CVE-2024-1234"
+        ]
+    }
+    result = security_comparison(None, current)
+
+    assert result is None

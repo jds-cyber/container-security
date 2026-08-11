@@ -1,4 +1,3 @@
----
 name: Container Security Scan
 
 on:
@@ -16,8 +15,10 @@ permissions:
 
 jobs:
   security:
-
     runs-on: ubuntu-latest
+
+    env:
+      IMAGE_NAME: pywinrm-ansible:dev
 
     steps:
 
@@ -40,7 +41,7 @@ jobs:
 
       - name: Build image
         run: |
-          docker build -t pywinrm-ansible:dev .
+          docker build -t "$IMAGE_NAME" .
 
       - name: Install Grype
         uses: anchore/scan-action/download-grype@v3
@@ -48,23 +49,28 @@ jobs:
       - name: Scan container image
         run: |
           mkdir -p reports/latest
-          grype pywinrm-ansible:dev \
+          grype "$IMAGE_NAME" \
             -o json \
             > reports/latest/report.json
 
       - name: Generate security summary
+        if: always()
         run: |
-          mkdir -p reports/latest
-          ./scripts/summarize.py \
-            reports/latest/reports.json \
-            > reports/latest/summary.json
+          if [ -f reports/latest/report.json ]; then
+            ./scripts/summarize.py \
+              reports/latest/report.json \
+              > reports/latest/summary.json
+          fi
 
       - name: Generate HTML report
         if: always()
         run: |
-          ./scripts/report.py \
-            reports/latest/summary.json \
-            reports/latest/report.html
+          if [ -f reports/latest/summary.json ]; then
+            ./scripts/report.py \
+              reports/latest/summary.json \
+              reports/latest/report.html \
+              "$IMAGE_NAME"
+          fi
 
       - name: Upload security report
         if: always()
@@ -75,3 +81,4 @@ jobs:
             reports/latest/report.json
             reports/latest/summary.json
             reports/latest/report.html
+          if-no-files-found: warn

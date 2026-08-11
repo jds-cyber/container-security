@@ -70,3 +70,5 @@ echo "Image   : $IMAGE"
 echo "Reports : $SCAN_DIR"
 echo "Log     : $LOG_FILE"
 echo "=========================================="
+
+printf '%s\n' "$SCAN_DIR" >&2

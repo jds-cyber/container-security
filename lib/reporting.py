@@ -115,7 +115,14 @@ def security_score_trend():
     )
 
 
-def generate_report(summary, output, image_name="Unknown", previous_summary=None):
+def generate_report(
+        summary,
+        output,
+        image_name="Unknown",
+        previous_summary=None,
+        scan_id=None,
+        scan_timestamp=None,
+):
 
     template_dir = Path(__file__).parent / "templates"
 
@@ -124,14 +131,17 @@ def generate_report(summary, output, image_name="Unknown", previous_summary=None
     )
 
     comparison = security_comparison(previous_summary, summary)
-
     template = env.get_template("report.html.j2")
+
+    generated=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     html = template.render(
         summary=summary,
         image=image_name,
         comparison=comparison,
-        generated=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        generated=generated,
+        scan_id=scan_id,
+        scan_timestamp=scan_timestamp,
         passed=summary["critical"] == 0,
         bar_chart=severity_bar_chart(summary),
         pie_chart=severity_pie_chart(summary),
