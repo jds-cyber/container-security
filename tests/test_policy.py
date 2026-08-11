@@ -189,3 +189,54 @@ fail_on: Critical
         assert False, "Expected invalid policy configuration"
     except ValueError as exc:
         assert "'fail_on' must be a list" in str(exc)
+
+
+def test_policy_passes_at_exact_threshold():
+    summary = {
+        "critical": 0,
+        "high": 10,
+        "medium": 100,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [
+            "Critical",
+            "High",
+            "Medium",
+        ],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == []
+
+
+def test_policy_fails_one_above_threshold():
+    summary = {
+        "critical": 0,
+        "high": 11,
+        "medium": 101,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [
+            "Critical",
+            "High",
+            "Medium",
+        ],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert "High vulnerabilities exceed limit." in failures
+    assert "Medium vulnerabilities exceed limit." in failures
