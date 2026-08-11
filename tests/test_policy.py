@@ -234,3 +234,26 @@ def test_policy_fails_one_above_threshold():
 
     assert "High vulnerabilities exceed limit." in failures
     assert "Medium vulnerabilities exceed limit." in failures
+
+
+def test_load_policy_rejects_invalid_fail_on_severity(tmp_path):
+    policy_file = tmp_path / "policy.yml"
+
+    policy_file.write_text(
+        """
+policy:
+  max_critical: 0
+  max_high: 10
+  max_medium: 100
+
+fail_on:
+  - Critical
+  - Banana
+"""
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="'fail_on' contains invalid severity",
+    ):
+        load_policy(policy_file)
