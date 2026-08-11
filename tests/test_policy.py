@@ -306,3 +306,113 @@ fail_on:
         match="'fail_on' contains invalid severity",
     ):
         load_policy(policy_file)
+
+
+def test_policy_defaults_missing_thresholds_to_zero():
+    summary = {
+        "critical": 0,
+        "high": 1,
+        "medium": 1,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+        },
+        "fail_on": [
+            "Critical",
+            "High",
+            "Medium",
+        ],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert "High vulnerabilities exceed limit." in failures
+    assert "Medium vulnerabilities exceed limit." in failures
+    assert "Critical vulnerabilities exceed limit." not in failures
+
+
+def test_policy_allows_missing_threshold_when_severity_not_enforced():
+    summary = {
+        "critical": 0,
+        "high": 50,
+        "medium": 200,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+        },
+        "fail_on": [
+            "Critical",
+        ],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == []
+
+
+def test_policy_defaults_missing_fail_on_to_no_enforcement():
+    summary = {
+        "critical": 10,
+        "high": 50,
+        "medium": 200,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == []
+
+
+def test_policy_empty_fail_on_disables_enforcement():
+    summary = {
+        "critical": 10,
+        "high": 50,
+        "medium": 200,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == []
+
+
+def test_policy_supports_only_critical_threshold():
+    summary = {
+        "critical": 1,
+        "high": 50,
+        "medium": 200,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+        },
+        "fail_on": [
+            "Critical",
+        ],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == [
+        "Critical vulnerabilities exceed limit."
+    ]
