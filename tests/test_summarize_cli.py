@@ -168,3 +168,41 @@ fail_on:
 
     assert result.returncode == 1
     assert "Invalid report structure" in result.stderr
+
+
+def test_summarize_fails_when_policy_yaml_is_invalid(tmp_path):
+    report_file = tmp_path / "report.json"
+    policy_file = tmp_path / "policy.yml"
+
+    write_report(report_file)
+
+    policy_file.write_text(
+        """
+policy:
+  max_critical: 0
+  max_high: 10
+  max_medium: 100
+
+fail_on:
+  - Critical
+  - High
+  - Medium
+  invalid: [broken
+"""
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SUMMARIZE_SCRIPT),
+            str(report_file),
+            "--policy",
+            str(policy_file),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 1
+    assert "Invalid policy YAML" in result.stderr
