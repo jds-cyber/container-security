@@ -1,4 +1,6 @@
-from lib.policy import evaluate
+import pytest
+
+from lib.policy import evaluate, load_policy
 
 
 def test_policy_failure():
@@ -102,8 +104,6 @@ def test_policy_respects_fail_on():
 
 
 def test_load_policy_rejects_missing_policy_section(tmp_path):
-    from lib.policy import load_policy
-
     policy_file = tmp_path / "policy.yml"
 
     policy_file.write_text(
@@ -113,16 +113,14 @@ fail_on:
 """
     )
 
-    try:
+    with pytest.raises(
+        ValueError,
+        match="missing 'policy' section",
+    ):
         load_policy(policy_file)
-        assert False, "Expected invalid policy configuration"
-    except ValueError as exc:
-        assert "missing 'policy' section" in str(exc)
 
 
 def test_load_policy_rejects_non_integer_threshold(tmp_path):
-    from lib.policy import load_policy
-
     policy_file = tmp_path / "policy.yml"
 
     policy_file.write_text(
@@ -137,16 +135,14 @@ fail_on:
 """
     )
 
-    try:
+    with pytest.raises(
+        ValueError,
+        match="'max_critical' must be an integer",
+    ):
         load_policy(policy_file)
-        assert False, "Expected invalid policy configuration"
-    except ValueError as exc:
-        assert "'max_critical' must be an integer" in str(exc)
 
 
 def test_load_policy_rejects_negative_threshold(tmp_path):
-    from lib.policy import load_policy
-
     policy_file = tmp_path / "policy.yml"
 
     policy_file.write_text(
@@ -161,16 +157,14 @@ fail_on:
 """
     )
 
-    try:
+    with pytest.raises(
+        ValueError,
+        match="'max_critical' cannot be negative",
+    ):
         load_policy(policy_file)
-        assert False, "Expected invalid policy configuration"
-    except ValueError as exc:
-        assert "'max_critical' cannot be negative" in str(exc)
 
 
 def test_load_policy_rejects_invalid_fail_on(tmp_path):
-    from lib.policy import load_policy
-
     policy_file = tmp_path / "policy.yml"
 
     policy_file.write_text(
@@ -184,11 +178,11 @@ fail_on: Critical
 """
     )
 
-    try:
+    with pytest.raises(
+        ValueError,
+        match="'fail_on' must be a list",
+    ):
         load_policy(policy_file)
-        assert False, "Expected invalid policy configuration"
-    except ValueError as exc:
-        assert "'fail_on' must be a list" in str(exc)
 
 
 def test_policy_passes_at_exact_threshold():
