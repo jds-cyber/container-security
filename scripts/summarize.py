@@ -51,7 +51,7 @@ policy = load_policy(args.policy)
 failures = evaluate(summary, policy)
 
 if failures:
-    print("***sSECURITY POLICY FAILED***\n", file=sys.stderr)
+    print("***SECURITY POLICY FAILED***\n", file=sys.stderr)
 
     for failure in failures:
         print(f"- {failure}", file=sys.stderr)

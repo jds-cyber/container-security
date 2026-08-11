@@ -76,6 +76,57 @@ jobs:
 
           echo "summary_exit=$SUMMARY_EXIT" >> "$GITHUB_OUTPUT"
 
+          if [ "$SUMMARY_EXIT" -eq 0 ]; then
+            POLICY_STATUS="✅ PASSED"
+          else
+            POLICY_STATUS="❌ FAILED"
+          fi
+
+          export POLICY_STATUS
+
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          summary = json.loads(
+              Path("reports/latest/summary.json").read_text()
+          )
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write("# Container Security Scan\n\n")
+              f.write(
+                  f"## Policy Status: "
+                  f"{os.environ['POLICY_STATUS']}\n\n"
+              )
+              f.write("| Metric | Value |\n")
+              f.write("|---|---:|\n")
+              f.write(f"| Findings | {summary['findings']} |\n")
+              f.write(
+                  f"| Unique vulnerabilities | "
+                  f"{summary['unique_vulnerabilities']} |\n"
+              )
+              f.write(f"| Critical | {summary['critical']} |\n")
+              f.write(f"| High | {summary['high']} |\n")
+              f.write(f"| Medium | {summary['medium']} |\n")
+              f.write(f"| Low | {summary['low']} |\n")
+              f.write(f"| Negligible | {summary['negligible']} |\n")
+              f.write(f"| Unknown | {summary['unknown']} |\n")
+              f.write(
+                  f"| Weighted risk | "
+                  f"{summary['weighted_risk']} |\n"
+              )
+              f.write(
+                  f"| Security score | "
+                  f"{summary['security_score']} |\n"
+              )
+              f.write(f"| Grade | {summary['grade']} |\n")
+              f.write(
+                  f"| Risk level | "
+                  f"{summary['risk_level']} |\n"
+              )
+          PY
+
           exit 0
 
       - name: Generate HTML report
