@@ -4,6 +4,14 @@ reports/
 summary.json
 logs/
 
+# Local configuration
+config/config.env
+
+# Certificates
+certs/*.crt
+certs/*.pem
+certs/*.key
+
 # SBOMs
 sbom/
 

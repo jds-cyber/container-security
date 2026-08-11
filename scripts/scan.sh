@@ -35,8 +35,8 @@ success "Environment validation passed"
 info "Updating Grype vulnerability database..."
 
 docker run --rm \
-  -e SSL_CERT_FILE=/tmp/zscaler-root-ca.crt \
-  -v "$ROOT_DIR/$CERT_FILE:/tmp/zscaler-root-ca.crt:ro" \
+  -e SSL_CERT_FILE=/tmp/corporate-ca.crt \
+  -v "$ROOT_DIR/$CERT_FILE:/tmp/corporate-ca.crt:ro" \
   "$GRYPE_IMAGE" \
   db update >>"$LOG_FILE" 2>&1
 
@@ -45,16 +45,16 @@ success "Database is current"
 info "Scanning image..."
 
 docker run --rm \
-  -e SSL_CERT_FILE=/tmp/zscaler-root-ca.crt \
-  -v "$ROOT_DIR/$CERT_FILE:/tmp/zscaler-root-ca.crt:ro" \
+  -e SSL_CERT_FILE=/tmp/corporate-ca.crt \
+  -v "$ROOT_DIR/$CERT_FILE:/tmp/corporate-ca.crt:ro" \
   -v /var/run/docker.sock:/var/run/docker.sock \
   "$GRYPE_IMAGE" \
   "docker:$IMAGE" \
   -o table > "$TABLE_REPORT"
 
 docker run --rm \
-  -e SSL_CERT_FILE=/tmp/zscaler-root-ca.crt \
-  -v "$ROOT_DIR/$CERT_FILE:/tmp/zscaler-root-ca.crt:ro" \
+  -e SSL_CERT_FILE=/tmp/corporate-ca.crt \
+  -v "$ROOT_DIR/$CERT_FILE:/tmp/corporate-ca.crt:ro" \
   -v /var/run/docker.sock:/var/run/docker.sock \
   "$GRYPE_IMAGE" \
   "docker:$IMAGE" \
