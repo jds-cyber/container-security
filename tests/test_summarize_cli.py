@@ -108,3 +108,63 @@ fail_on:
     assert result.returncode == 1
     assert "SECURITY POLICY FAILED" in result.stderr
     assert "Critical vulnerabilities exceed limit." in result.stderr
+
+
+def test_summarize_fails_when_policy_file_is_missing(tmp_path):
+    report_file = tmp_path / "report.json"
+    missing_policy = tmp_path / "missing-policy.yml"
+
+    write_report(report_file)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SUMMARIZE_SCRIPT),
+            str(report_file),
+            "--policy",
+            str(missing_policy),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 1
+    assert "Policy file not found" in result.stderr
+
+
+def test_summarize_fails_when_report_structure_is_invalid(tmp_path):
+    report_file = tmp_path / "report.json"
+    policy_file = tmp_path / "policy.yml"
+
+    report_file.write_text(
+        json.dumps({"invalid": []})
+    )
+
+    policy_file.write_text(
+        """
+policy:
+  max_critical: 0
+  max_high: 10
+  max_medium: 100
+
+fail_on:
+  - Critical
+"""
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SUMMARIZE_SCRIPT),
+            str(report_file),
+            "--policy",
+            str(policy_file),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 1
+    assert "Invalid report structure" in result.stderr

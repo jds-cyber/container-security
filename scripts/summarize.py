@@ -3,6 +3,7 @@
 import json
 import sys
 import argparse
+import yaml
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -39,6 +40,10 @@ except json.JSONDecodeError:
     print("Invalid JSON report")
     sys.exit(1)
 
+if not isinstance(report, dict) or "matches" not in report:
+    print("Invalid report structure", file=sys.stderr)
+    sys.exit(1)
+
 summary = summarize(report["matches"])
 
 summary["weighted_risk"] = weighted_risk(summary)
@@ -46,7 +51,14 @@ summary["security_score"] = security_score(summary)
 summary["grade"] = security_grade(summary["security_score"])
 summary["risk_level"] = risk_level(summary["security_score"])
 
-policy = load_policy(args.policy)
+try:
+    policy = load_policy(args.policy)
+except FileNotFoundError:
+    print(f"Policy file not found: {args.policy}", file=sys.stderr)
+    sys.exit(1)
+except yaml.YAMLError:
+    print(f"Invalid policy YAML: {args.policy}", file=sys.stderr)
+    sys.exit(1)
 
 failures = evaluate(summary, policy)
 
