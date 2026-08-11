@@ -283,3 +283,26 @@ fail_on:
         "high",
         "MeDiUm",
     ]
+
+
+def test_load_policy_rejects_non_string_fail_on_severity(tmp_path):
+    policy_file = tmp_path / "policy.yml"
+
+    policy_file.write_text(
+        """
+policy:
+  max_critical: 0
+  max_high: 10
+  max_medium: 100
+
+fail_on:
+  - Critical
+  - 123
+"""
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="'fail_on' contains invalid severity",
+    ):
+        load_policy(policy_file)
