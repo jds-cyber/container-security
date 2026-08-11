@@ -416,3 +416,292 @@ def test_policy_supports_only_critical_threshold():
     assert failures == [
         "Critical vulnerabilities exceed limit."
     ]
+
+
+def test_policy_missing_summary_severities_default_to_zero():
+    summary = {}
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [
+            "Critical",
+            "High",
+            "Medium",
+        ],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == []
+
+
+def test_policy_reports_all_failures_in_severity_order():
+    summary = {
+        "critical": 1,
+        "high": 11,
+        "medium": 101,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [
+            "Medium",
+            "Critical",
+            "High",
+        ],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == [
+        "Critical vulnerabilities exceed limit.",
+        "High vulnerabilities exceed limit.",
+        "Medium vulnerabilities exceed limit.",
+    ]
+
+
+def test_policy_enforces_only_high():
+    summary = {
+        "critical": 10,
+        "high": 11,
+        "medium": 200,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [
+            "High",
+        ],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == [
+        "High vulnerabilities exceed limit.",
+    ]
+
+
+def test_policy_enforces_only_medium():
+    summary = {
+        "critical": 10,
+        "high": 20,
+        "medium": 101,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [
+            "Medium",
+        ],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == [
+        "Medium vulnerabilities exceed limit.",
+    ]
+
+
+def test_policy_does_not_fail_passing_severities():
+    summary = {
+        "critical": 0,
+        "high": 10,
+        "medium": 100,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [
+            "Critical",
+            "High",
+            "Medium",
+        ],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == []
+
+
+def test_policy_handles_missing_summary_field_for_enforced_severity():
+    summary = {
+        "critical": 1,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [
+            "Critical",
+            "High",
+            "Medium",
+        ],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == [
+        "Critical vulnerabilities exceed limit.",
+    ]
+
+
+def test_policy_rejects_non_dict_summary():
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [
+            "Critical",
+            "High",
+            "Medium",
+        ],
+    }
+
+    with pytest.raises(
+        ValueError,
+        match="summary must be a mapping",
+    ):
+        evaluate([], policy)
+
+
+def test_policy_rejects_non_integer_summary_severity():
+    summary = {
+        "critical": "1",
+        "high": 5,
+        "medium": 10,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [
+            "Critical",
+            "High",
+            "Medium",
+        ],
+    }
+
+    with pytest.raises(
+        ValueError,
+        match="'critical' must be an integer",
+    ):
+        evaluate(summary, policy)
+
+
+def test_policy_rejects_negative_summary_severity():
+    summary = {
+        "critical": -1,
+        "high": 5,
+        "medium": 10,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [
+            "Critical",
+            "High",
+            "Medium",
+        ],
+    }
+
+    with pytest.raises(
+        ValueError,
+        match="'critical' cannot be negative",
+    ):
+        evaluate(summary, policy)
+
+
+def test_policy_does_not_duplicate_failure_for_duplicate_fail_on():
+    summary = {
+        "critical": 1,
+        "high": 0,
+        "medium": 0,
+    }
+
+    policy = {
+        "policy": {
+            "max_critical": 0,
+            "max_high": 10,
+            "max_medium": 100,
+        },
+        "fail_on": [
+            "Critical",
+            "critical",
+        ],
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == [
+        "Critical vulnerabilities exceed limit.",
+    ]
+
+
+def test_policy_rejects_fail_on_severity_with_whitespace(tmp_path):
+    policy_file = tmp_path / "policy.yml"
+
+    policy_file.write_text(
+        """
+policy:
+  max_critical: 0
+  max_high: 10
+  max_medium: 100
+
+fail_on:
+  - " Critical "
+"""
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="'fail_on' contains invalid severity",
+    ):
+        load_policy(policy_file)
+
+
+def test_policy_allows_empty_policy_rules():
+    summary = {
+        "critical": 10,
+        "high": 50,
+        "medium": 200,
+    }
+
+    policy = {
+        "policy": {},
+    }
+
+    failures = evaluate(summary, policy)
+
+    assert failures == []

@@ -60,9 +60,41 @@ def load_policy(path):
 
 
 def evaluate(summary, policy):
-    failures = []
+    if not isinstance(summary, dict):
+        raise ValueError("Invalid summary configuration: summary must be a mapping.")
+
+    for severity in ("critical", "high", "medium"):
+        if severity in summary:
+            value = summary[severity]
+
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise ValueError(
+                    f"Invalid summary configuration: "
+                    f"'{severity}' must be an integer."
+                )
+
+            if value < 0:
+                raise ValueError(
+                    f"Invalid summary configuration: "
+                    f"'{severity}' cannot be negative."
+                )
+
+    if not isinstance(policy, dict):
+        raise ValueError("Invalid policy configuration")
+
+    if "policy" not in policy:
+        raise ValueError(
+            "Invalid policy configuration: missing policy section."
+        )
 
     rules = policy["policy"]
+
+    if not isinstance(rules, dict):
+        raise ValueError(
+            "Invalid policy configuration: policy must be a mapping."
+        )
+
+    failures = []
 
     fail_on = [
         severity.lower()
@@ -71,20 +103,14 @@ def evaluate(summary, policy):
 
     if "critical" in fail_on:
         if summary.get("critical", 0) > rules.get("max_critical", 0):
-            failures.append(
-                "Critical vulnerabilities exceed limit."
-            )
+            failures.append( "Critical vulnerabilities exceed limit." )
 
     if "high" in fail_on:
         if summary.get("high", 0) > rules.get("max_high", 0):
-            failures.append(
-                "High vulnerabilities exceed limit."
-            )
+            failures.append( "High vulnerabilities exceed limit." )
 
     if "medium" in fail_on:
         if summary.get("medium", 0) > rules.get("max_medium", 0):
-            failures.append(
-                "Medium vulnerabilities exceed limit."
-            )
+            failures.append( "Medium vulnerabilities exceed limit." )
 
     return failures
