@@ -31,9 +31,9 @@ def test_policy_failure():
 def test_policy_pass():
 
     summary = {
-        "Critical": 0,
-        "High": 5,
-        "Medium": 10
+        "critical": 0,
+        "high": 5,
+        "medium": 10
     }
 
     policy = {
