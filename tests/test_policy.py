@@ -257,3 +257,29 @@ fail_on:
         match="'fail_on' contains invalid severity",
     ):
         load_policy(policy_file)
+
+
+def test_load_policy_accepts_case_insensitive_fail_on_severities(tmp_path):
+    policy_file = tmp_path / "policy.yml"
+
+    policy_file.write_text(
+        """
+policy:
+  max_critical: 0
+  max_high: 10
+  max_medium: 100
+
+fail_on:
+  - CRITICAL
+  - high
+  - MeDiUm
+"""
+    )
+
+    policy = load_policy(policy_file)
+
+    assert policy["fail_on"] == [
+        "CRITICAL",
+        "high",
+        "MeDiUm",
+    ]
