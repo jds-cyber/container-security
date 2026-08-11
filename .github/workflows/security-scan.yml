@@ -1,3 +1,4 @@
+---
 name: Container Security Scan
 
 on:
@@ -21,7 +22,6 @@ jobs:
       IMAGE_NAME: pywinrm-ansible:dev
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -54,22 +54,31 @@ jobs:
             > reports/latest/report.json
 
       - name: Generate security summary
-        if: always()
+        id: summarize
         run: |
-          if [ -f reports/latest/report.json ]; then
-            ./scripts/summarize.py \
-              reports/latest/report.json \
-              > reports/latest/summary.json
-          fi
+          set +e
+
+          ./scripts/summarize.py \
+            reports/latest/report.json \
+            > reports/latest/summary.json
+
+          SUMMARY_EXIT=$?
+
+          echo "summary_exit=$SUMMARY_EXIT" >> "$GITHUB_OUTPUT"
+
+          exit 0
 
       - name: Generate HTML report
         if: always()
         run: |
-          if [ -f reports/latest/summary.json ]; then
+          if [ -s reports/latest/summary.json ]; then
             ./scripts/report.py \
               reports/latest/summary.json \
               reports/latest/report.html \
               "$IMAGE_NAME"
+          else
+            echo "No valid security summary was generated."
+            exit 1
           fi
 
       - name: Upload security report
@@ -82,3 +91,13 @@ jobs:
             reports/latest/summary.json
             reports/latest/report.html
           if-no-files-found: warn
+
+      - name: Enforce security policy
+        if: always()
+        run: |
+          if [ "${{ steps.summarize.outputs.summary_exit }}" != "0" ]; then
+            echo "Security policy failed."
+            exit 1
+          fi
+
+          echo "Security policy passed."
