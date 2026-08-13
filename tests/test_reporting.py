@@ -301,3 +301,36 @@ def test_security_score_trend_uses_saved_history(tmp_path):
 
     assert chart
     assert "Security Score Trend" in chart
+
+
+def test_security_score_trend_uses_configured_history(tmp_path, monkeypatch):
+    configured_history = tmp_path / "configured"
+    default_history = tmp_path / "default"
+
+    from lib.history import save_history
+
+    save_history(
+        {"security_score": 75},
+        configured_history,
+        image_name="test-image:latest",
+    )
+
+    save_history(
+        {"security_score": 90},
+        configured_history,
+        image_name="test-image:latest",
+    )
+
+    save_history(
+        {"security_score": 20},
+        default_history,
+        image_name="test-image:latest",
+    )
+
+    chart = security_score_trend(
+        "test-image:latest",
+        history_dir=configured_history,
+    )
+
+    assert chart
+    assert "Security Score Trend" in chart

@@ -133,6 +133,7 @@ def generate_report(
         previous_summary=None,
         scan_id=None,
         scan_timestamp=None,
+        history_dir="reports/history",
 ):
 
     template_dir = Path(__file__).parent / "templates"
@@ -157,7 +158,10 @@ def generate_report(
         policy_failures=summary.get("policy_failures", []),
         bar_chart=severity_bar_chart(summary),
         pie_chart=severity_pie_chart(summary),
-        trend_chart=security_score_trend(image_name),
+        trend_chart=security_score_trend(
+            image_name,
+            history_dir=history_dir,
+        ),
     )
 
     Path(output).write_text(html)

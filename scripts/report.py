@@ -75,7 +75,8 @@ generate_report(
     image_name=image_name,
     previous_summary=previous,
     scan_id=history_record["scan_id"],
-    scan_timestamp=history_record["scan_timestamp"]
+    scan_timestamp=history_record["scan_timestamp"],
+    history_dir=history_dir,
 )
 
 print(f"Report generated: {sys.argv[2]}")
