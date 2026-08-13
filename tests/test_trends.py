@@ -1,5 +1,4 @@
 import json
-
 from lib.trends import load_history
 
 
@@ -16,3 +15,26 @@ def test_load_history(tmp_path):
     assert len(history) == 2
     assert history[0]["security_score"] == 80
     assert history[1]["security_score"] == 90
+
+
+def test_load_history_includes_scan_name(tmp_path):
+
+    history_dir = tmp_path / "history"
+    history_dir.mkdir()
+
+    report = {
+        "security_score": 90,
+        "grade": "A"
+    }
+
+    file = history_dir / "2026-08-05_scan.json"
+
+    file.write_text(
+        json.dumps(report)
+    )
+
+    history = load_history(history_dir)
+
+    assert len(history) == 1
+    assert history[0]["scan"] == "2026-08-05_scan"
+    assert history[0]["security_score"] == 90
