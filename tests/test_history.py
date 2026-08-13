@@ -83,3 +83,51 @@ def test_history_contains_scan_id(tmp_path):
 
     assert "scan_id" in data
     assert data["scan_id"] in output.name
+
+
+def test_previous_scan_returns_none_when_no_history(tmp_path):
+
+    previous = previous_scan(
+        tmp_path,
+        "test-image:latest",
+    )
+
+    assert previous is None
+
+
+def test_previous_scan_returns_none_with_one_scan(tmp_path):
+
+    save_history(
+        {"security_score": 90},
+        tmp_path,
+        image_name="test-image:latest",
+    )
+
+    previous = previous_scan(
+        tmp_path,
+        "test-image:latest",
+    )
+
+    assert previous is None
+
+
+def test_previous_scan_ignores_other_images(tmp_path):
+
+    save_history(
+        {"security_score": 70},
+        tmp_path,
+        image_name="other-image:latest",
+    )
+
+    save_history(
+        {"security_score": 90},
+        tmp_path,
+        image_name="test-image:latest",
+    )
+
+    previous = previous_scan(
+        tmp_path,
+        "test-image:latest",
+    )
+
+    assert previous is None
