@@ -50,6 +50,36 @@ def test_previous_scan_same_image(tmp_path):
     assert previous["image"] == "pihole/pihole:latest"
 
 
+def test_previous_scan_ignores_other_images(tmp_path):
+
+    save_history(
+        {"security_score": 70},
+        tmp_path,
+        image_name="other-image:latest",
+    )
+
+    save_history(
+        {"security_score": 80},
+        tmp_path,
+        image_name="test-image:latest",
+    )
+
+    save_history(
+        {"security_score": 90},
+        tmp_path,
+        image_name="test-image:latest",
+    )
+
+    previous = previous_scan(
+        tmp_path,
+        "test-image:latest",
+    )
+
+    assert previous is not None
+    assert previous["security_score"] == 80
+    assert previous["image"] == "test-image:latest"
+
+
 def test_history_contains_scan_metadata(tmp_path):
     summary = {
         "security_score": 90
@@ -111,23 +141,16 @@ def test_previous_scan_returns_none_with_one_scan(tmp_path):
     assert previous is None
 
 
-def test_previous_scan_ignores_other_images(tmp_path):
+def test_load_history_empty_directory(tmp_path):
 
-    save_history(
-        {"security_score": 70},
-        tmp_path,
-        image_name="other-image:latest",
-    )
+    history = load_history(tmp_path)
 
-    save_history(
-        {"security_score": 90},
-        tmp_path,
-        image_name="test-image:latest",
-    )
+    assert history == []
 
-    previous = previous_scan(
-        tmp_path,
-        "test-image:latest",
-    )
 
-    assert previous is None
+def test_load_history_missing_directory(tmp_path):
+
+    history_dir = tmp_path / "missing"
+    history = load_history(history_dir)
+
+    assert history == []
