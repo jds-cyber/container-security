@@ -29,5 +29,8 @@ report:
 
 security-report:
 	@$(MAKE) scan IMAGE="$(IMAGE)"
-	@-$(MAKE) summarize REPORT="$(REPORT)"
-	@$(MAKE) report IMAGE="$(IMAGE)"
+	@set +e; \
+	$(MAKE) summarize REPORT="$(REPORT)"; \
+	SUMMARY_EXIT=$$?; \
+	$(MAKE) report IMAGE="$(IMAGE)"; \
+	exit $$SUMMARY_EXIT
