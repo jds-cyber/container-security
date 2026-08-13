@@ -109,6 +109,15 @@ td,th{
                 <span class="status-fail">FAIL</span>
             {% endif %}
         </p>
+
+        {% if policy_failures %}
+            <h3>Policy Failures</h3>
+            <ul>
+                {% for failure in policy_failures %}
+                    <li class="status-fail">{{ failure }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
     </div>
 
     <div class="card">

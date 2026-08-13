@@ -58,6 +58,9 @@ except ValueError as exc:
 
 failures = evaluate(summary, policy)
 
+summary["policy_failures"] = failures
+summary["policy_passed"] = not failures
+
 if failures:
     print("***SECURITY POLICY FAILED***\n", file=sys.stderr)
 
