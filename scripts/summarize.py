@@ -3,7 +3,6 @@
 import json
 import sys
 import argparse
-import yaml
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -53,11 +52,8 @@ summary["risk_level"] = risk_level(summary["security_score"])
 
 try:
     policy = load_policy(args.policy)
-except FileNotFoundError:
-    print(f"Policy file not found: {args.policy}", file=sys.stderr)
-    sys.exit(1)
-except yaml.YAMLError:
-    print(f"Invalid policy YAML: {args.policy}", file=sys.stderr)
+except ValueError as exc:
+    print(str(exc), file=sys.stderr)
     sys.exit(1)
 
 failures = evaluate(summary, policy)

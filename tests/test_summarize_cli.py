@@ -131,6 +131,7 @@ def test_summarize_fails_when_policy_file_is_missing(tmp_path):
 
     assert result.returncode == 1
     assert "Policy file not found" in result.stderr
+    assert "Traceback" not in result.stderr
 
 
 def test_summarize_fails_when_report_structure_is_invalid(tmp_path):
