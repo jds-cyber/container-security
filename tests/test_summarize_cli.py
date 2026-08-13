@@ -2,6 +2,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from lib.reporting import generate_report
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -207,3 +208,131 @@ fail_on:
 
     assert result.returncode == 1
     assert "Invalid policy YAML" in result.stderr
+
+
+def test_summarize_includes_policy_result_when_policy_passes(tmp_path):
+    report_file = tmp_path / "report.json"
+    policy_file = tmp_path / "policy.yml"
+
+    write_report(
+        report_file,
+        critical=0,
+        high=2,
+        medium=5,
+    )
+
+    policy_file.write_text(
+        """
+policy:
+  max_critical: 0
+  max_high: 10
+  max_medium: 100
+
+fail_on:
+  - Critical
+  - High
+  - Medium
+"""
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SUMMARIZE_SCRIPT),
+            str(report_file),
+            "--policy",
+            str(policy_file),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 0
+
+    summary = json.loads(result.stdout)
+
+    assert summary["policy_passed"] is True
+    assert summary["policy_failures"] == []
+
+
+def test_summarize_includes_policy_result_when_policy_fails(tmp_path):
+    report_file = tmp_path / "report.json"
+    policy_file = tmp_path / "policy.yml"
+
+    write_report(
+        report_file,
+        critical=1,
+        high=2,
+        medium=5,
+    )
+
+    policy_file.write_text(
+        """
+policy:
+  max_critical: 0
+  max_high: 10
+  max_medium: 100
+
+fail_on:
+  - Critical
+  - High
+  - Medium
+"""
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SUMMARIZE_SCRIPT),
+            str(report_file),
+            "--policy",
+            str(policy_file),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 1
+
+    summary = json.loads(result.stdout)
+
+    assert summary["policy_passed"] is False
+    assert "Critical vulnerabilities exceed limit." in summary["policy_failures"]
+
+
+def test_generate_report_policy_status_comes_from_summary(tmp_path):
+
+    summary = {
+        "findings": 0,
+        "unique_vulnerabilities": 0,
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "negligible": 0,
+        "unknown": 0,
+        "weighted_risk": 0,
+        "security_score": 100,
+        "grade": "A",
+        "risk_level": "LOW",
+
+        "policy_passed": False,
+        "policy_failures": [
+            "Test policy failure."
+        ],
+    }
+
+    output = tmp_path / "report.html"
+
+    generate_report(
+        summary,
+        output,
+        image_name="test-image",
+    )
+
+    content = output.read_text()
+
+    assert "FAIL" in content
+    assert "Test policy failure." in content
