@@ -136,8 +136,14 @@ jobs:
                   f"| Risk level | "
                   f"{summary['risk_level']} |\n"
               )
-          PY
 
+              if summary.get("policy_failures"):
+                  f.write("\n### Policy Failures\n\n")
+
+                  for failure in summary["policy_failures"]:
+                      f.write(f"- ❌ {failure}\n")
+
+          PY
           exit 0
 
       - name: Generate HTML report

@@ -36,3 +36,18 @@ def test_workflow_uploads_security_artifacts():
     assert "reports/latest/report.json" in content
     assert "reports/latest/summary.json" in content
     assert "reports/latest/report.html" in content
+
+
+def test_workflow_displays_policy_failures():
+    content = WORKFLOW.read_text()
+
+    assert 'summary.get("policy_failures")' in content
+    assert "### Policy Failures" in content
+    assert 'summary["policy_failures"]' in content
+
+
+def test_workflow_lists_each_policy_failure():
+    content = WORKFLOW.read_text()
+
+    assert 'for failure in summary["policy_failures"]' in content
+    assert 'f.write(f"- ❌ {failure}\\n")' in content
