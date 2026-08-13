@@ -21,18 +21,26 @@ def load_policy(path):
     if not isinstance(rules, dict):
         raise ValueError("Invalid policy configuration: 'policy' must be a mapping")
 
-    for key in ("max_critical", "max_high", "max_medium"):
+    valid_rules = {"max_critical", "max_high", "max_medium"}
+
+    for key in rules:
+        if key not in valid_rules:
+            raise ValueError(
+                f"Invalid policy configuration: unknown policy rule: {key}"
+            )
+
+    for key in valid_rules:
         if key in rules:
             value = rules[key]
 
             if not isinstance(value, int) or isinstance(value, bool):
                 raise ValueError(
-                    f"Invalid policy configuration: '{key}' must be an integer"
+                    f"Invalid policy configuration: '{key}' must be an integer."
                 )
 
             if value < 0:
                 raise ValueError(
-                    f"Invalid policy configuration: '{key}' cannot be negative"
+                    f"Invalid policy configuration: '{key}' cannot be negative."
                 )
 
     if "fail_on" not in policy:

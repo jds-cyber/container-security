@@ -722,3 +722,26 @@ policy:
     policy = load_policy(policy_file)
 
     assert policy["fail_on"] == []
+
+
+def test_load_policy_rejects_unknown_policy_rule(tmp_path):
+    policy_file = tmp_path / "policy.yml"
+
+    policy_file.write_text(
+        """
+policy:
+  max_critical: 0
+  max_high: 10
+  max_medium: 100
+  max_low: 50
+
+fail_on:
+  - Critical
+"""
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="unknown policy rule",
+    ):
+        load_policy(policy_file)
