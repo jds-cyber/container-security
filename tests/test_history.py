@@ -154,3 +154,29 @@ def test_load_history_missing_directory(tmp_path):
     history = load_history(history_dir)
 
     assert history == []
+
+
+def test_load_history_rejects_invalid_json(tmp_path):
+
+    file = tmp_path / "broken.json"
+    file.write_text("{ invalid json")
+
+    try:
+        load_history(tmp_path)
+        assert False, "Expected JSONDecodeError"
+    except json.JSONDecodeError:
+        pass
+
+
+def test_load_history_rejects_non_dict_summary(tmp_path):
+
+    file = tmp_path / "invalid.json"
+    file.write_text(
+        json.dumps(["not", "a", "summary"])
+    )
+
+    try:
+        load_history(tmp_path)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
