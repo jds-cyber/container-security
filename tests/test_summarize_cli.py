@@ -330,6 +330,7 @@ def test_generate_report_policy_status_comes_from_summary(tmp_path):
         summary,
         output,
         image_name="test-image",
+        history_dir=tmp_path / "history",
     )
 
     content = output.read_text()

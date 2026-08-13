@@ -181,3 +181,44 @@ def test_load_history_rejects_non_dict_summary(tmp_path):
         assert False, "Expected ValueError"
     except ValueError:
         pass
+
+
+def test_load_history_uses_filename_for_scan_identifier(tmp_path):
+
+    file = tmp_path / "2026-08-13_120000-000000.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "scan": "incorrect-scan-id",
+                "image": "test-image:latest",
+                "scan_id": "incorrect-scan-id",
+                "scan_timestamp": "2026-08-13T12:00:00",
+                "security_score": 90,
+            }
+        )
+    )
+
+    history = load_history(tmp_path)
+
+    assert len(history) == 1
+    assert history[0]["scan"] == "2026-08-13_120000-000000"
+
+
+def test_load_history_rejects_missing_history_metadata(tmp_path):
+
+    file = tmp_path / "2026-08-13_120000-000000.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "security_score": 90,
+            }
+        )
+    )
+
+    try:
+        load_history(tmp_path)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass

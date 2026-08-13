@@ -25,7 +25,8 @@ def test_generate_report(tmp_path):
     generate_report(
         summary,
         output,
-        image_name="test-image"
+        image_name="test-image",
+        history_dir=tmp_path / "history",
     )
 
     assert output.exists()
@@ -164,6 +165,7 @@ def test_generate_report_displays_policy_failures(tmp_path):
         summary,
         output,
         image_name="test-image",
+        history_dir=tmp_path / "history",
     )
 
     content = output.read_text()
@@ -198,6 +200,7 @@ def test_generate_report_policy_status_comes_from_summary(tmp_path):
         summary,
         output,
         image_name="test-image",
+        history_dir=tmp_path / "history",
     )
 
     content = output.read_text()
@@ -233,6 +236,7 @@ def test_generate_report_policy_failure_sets_status_to_fail(tmp_path):
         summary,
         output,
         image_name="test-image",
+        history_dir=tmp_path / "history",
     )
 
     content = output.read_text()
@@ -265,6 +269,7 @@ def test_generate_report_missing_policy_status_defaults_to_fail(tmp_path):
         summary,
         output,
         image_name="test-image",
+        history_dir=tmp_path / "history",
     )
 
     content = output.read_text()

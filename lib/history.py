@@ -46,10 +46,21 @@ def load_history(history_dir):
                 f"Invalid history summary structure: {file}"
             )
 
+        required_metadata = {
+            "image",
+            "scan_id",
+            "scan_timestamp",
+        }
+
+        if not required_metadata.issubset(summary):
+            raise ValueError(
+                f"Invalid history metadata: {file}"
+            )
+
         summaries.append(
             {
-                "scan": file.stem,
                 **summary,
+                "scan": file.stem,
             }
         )
 
