@@ -60,3 +60,75 @@ def test_security_report_runs_report_after_summary_failure():
     )
 
     assert summarize_index < report_index
+
+
+def test_security_report_shell_preserves_summary_failure():
+    result = subprocess.run(
+        [
+            "bash",
+            "-c",
+            """
+            set +e
+            false
+            SUMMARY_EXIT=$?
+            true
+            REPORT_EXIT=$?
+            if [ $REPORT_EXIT -ne 0 ]; then
+                exit $REPORT_EXIT
+            fi
+            exit $SUMMARY_EXIT
+            """,
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+
+
+def test_security_report_shell_fails_when_report_fails():
+    result = subprocess.run(
+        [
+            "bash",
+            "-c",
+            """
+            set +e
+            true
+            SUMMARY_EXIT=$?
+            false
+            REPORT_EXIT=$?
+            if [ $REPORT_EXIT -ne 0 ]; then
+                exit $REPORT_EXIT
+            fi
+            exit $SUMMARY_EXIT
+            """,
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+
+
+def test_security_report_shell_succeeds_when_both_succeed():
+    result = subprocess.run(
+        [
+            "bash",
+            "-c",
+            """
+            set +e
+            true
+            SUMMARY_EXIT=$?
+            true
+            REPORT_EXIT=$?
+            if [ $REPORT_EXIT -ne 0 ]; then
+                exit $REPORT_EXIT
+            fi
+            exit $SUMMARY_EXIT
+            """,
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
