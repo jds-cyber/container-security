@@ -271,3 +271,33 @@ def test_generate_report_missing_policy_status_defaults_to_fail(tmp_path):
 
     assert "Policy Status:" in content
     assert "FAIL" in content
+
+
+def test_security_score_trend_uses_saved_history(tmp_path):
+    from lib.history import save_history, load_history
+
+    save_history(
+        {"security_score": 75},
+        tmp_path,
+        image_name="test-image:latest",
+    )
+
+    save_history(
+        {"security_score": 85},
+        tmp_path,
+        image_name="test-image:latest",
+    )
+
+    history = load_history(tmp_path)
+
+    assert len(history) == 2
+    assert history[0]["security_score"] == 75
+    assert history[1]["security_score"] == 85
+
+    chart = security_score_trend(
+        "test-image:latest",
+        history_dir=tmp_path,
+    )
+
+    assert chart
+    assert "Security Score Trend" in chart
