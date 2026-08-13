@@ -19,8 +19,37 @@ if not image_name.strip():
     print("Image name cannot be empty")
     sys.exit(1)
 
-with open(sys.argv[1]) as f:
-    summary = json.load(f)
+summary_path = Path(sys.argv[1])
+
+try:
+    with open(summary_path) as f:
+        summary = json.load(f)
+
+except FileNotFoundError:
+    print(f"Summary file not found: {summary_path}")
+    sys.exit(1)
+
+except json.JSONDecodeError:
+    print("Invalid JSON summary")
+    sys.exit(1)
+
+required_fields = {
+    "findings",
+    "unique_vulnerabilities",
+    "critical",
+    "high",
+    "medium",
+    "low",
+    "negligible",
+    "unknown",
+    "weighted_risk",
+    "security_score",
+    "grade",
+}
+
+if not isinstance(summary, dict) or not required_fields.issubset(summary):
+    print("Invalid summary structure")
+    sys.exit(1)
 
 history_dir = os.environ.get(
     "CONTAINER_SECURITY_HISTORY",

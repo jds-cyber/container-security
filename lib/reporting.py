@@ -91,17 +91,23 @@ def security_score_trend(image_name):
         if report.get("image") == image_name
     ]
 
-    if not history:
+    trend_history = [
+        report
+        for report in history
+        if "security_score" in report and "scan" in report
+    ]
+
+    if not trend_history:
         return ""
 
     scores = [
         report["security_score"]
-        for report in history
+        for report in trend_history
     ]
 
     x = [
         report["scan"]
-        for report in history
+        for report in trend_history
     ]
 
     fig = px.line(

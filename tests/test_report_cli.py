@@ -144,3 +144,100 @@ def test_report_contains_scan_metadata(tmp_path):
     assert history["image"] == "test-image:latest"
     assert history["scan_id"] in content
     assert history["scan_timestamp"] in content
+
+
+def test_report_rejects_missing_summary_file(tmp_path):
+
+    output_file = tmp_path / "report.html"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPORT_SCRIPT),
+            str(tmp_path / "missing.json"),
+            str(output_file),
+            "test-image:latest",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 1
+    assert "Summary file not found" in result.stdout
+
+
+def test_report_rejects_invalid_json(tmp_path):
+
+    summary_file = tmp_path / "summary.json"
+    output_file = tmp_path / "report.html"
+
+    summary_file.write_text(
+        "{ invalid json"
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPORT_SCRIPT),
+            str(summary_file),
+            str(output_file),
+            "test-image:latest",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 1
+    assert "Invalid JSON summary" in result.stdout
+
+
+def test_report_rejects_invalid_summary_structure(tmp_path):
+
+    summary_file = tmp_path / "summary.json"
+    output_file = tmp_path / "report.html"
+
+    summary_file.write_text(
+        json.dumps(["not", "a", "summary"])
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPORT_SCRIPT),
+            str(summary_file),
+            str(output_file),
+            "test-image:latest",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 1
+    assert "Invalid summary structure" in result.stdout
+
+
+def test_report_rejects_empty_summary(tmp_path):
+
+    summary_file = tmp_path / "summary.json"
+    output_file = tmp_path / "report.html"
+
+    summary_file.write_text("{}")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPORT_SCRIPT),
+            str(summary_file),
+            str(output_file),
+            "test-image:latest",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 1
+    assert "Invalid summary structure" in result.stdout
