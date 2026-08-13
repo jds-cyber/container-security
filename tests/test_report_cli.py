@@ -338,3 +338,101 @@ def test_report_uses_configured_history_for_trend(tmp_path):
     content = second_output.read_text()
 
     assert "Security Score Trend" in content
+
+
+def test_report_includes_previous_scan_comparison(tmp_path):
+    history_dir = tmp_path / "history"
+
+    first_summary = tmp_path / "first.json"
+    first_output = tmp_path / "first.html"
+
+    first_summary.write_text(
+        json.dumps(
+            {
+                "findings": 2,
+                "unique_vulnerabilities": 2,
+                "critical": 1,
+                "high": 1,
+                "medium": 0,
+                "low": 0,
+                "negligible": 0,
+                "unknown": 0,
+                "weighted_risk": 15,
+                "security_score": 70,
+                "grade": "C",
+                "vulnerability_ids": [
+                    "CVE-2021-44228",
+                    "CVE-2024-12345",
+                ],
+            }
+        )
+    )
+
+    env = dict(os.environ)
+    env["CONTAINER_SECURITY_HISTORY"] = str(history_dir)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPORT_SCRIPT),
+            str(first_summary),
+            str(first_output),
+            "test-image:latest",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        env=env,
+    )
+
+    assert result.returncode == 0
+
+    second_summary = tmp_path / "second.json"
+    second_output = tmp_path / "second.html"
+
+    second_summary.write_text(
+        json.dumps(
+            {
+                "findings": 1,
+                "unique_vulnerabilities": 1,
+                "critical": 0,
+                "high": 1,
+                "medium": 0,
+                "low": 0,
+                "negligible": 0,
+                "unknown": 0,
+                "weighted_risk": 5,
+                "security_score": 90,
+                "grade": "A",
+                "vulnerability_ids": [
+                    "CVE-2024-12345",
+                ],
+            }
+        )
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPORT_SCRIPT),
+            str(second_summary),
+            str(second_output),
+            "test-image:latest",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        env=env,
+    )
+
+    assert result.returncode == 0
+    assert second_output.exists()
+
+    content = second_output.read_text()
+
+    assert "Security Comparison" in content
+    assert "Previous Score:" in content
+    assert "Current Score:" in content
+    assert "70" in content
+    assert "90" in content
+    assert "Improved" in content

@@ -46,7 +46,7 @@ def test_previous_scan_same_image(tmp_path):
     previous = previous_scan(tmp_path, "pihole/pihole:latest")
 
     assert previous is not None
-    assert previous["security_score"] == 90
+    assert previous["security_score"] == 95
     assert previous["image"] == "pihole/pihole:latest"
 
 
@@ -76,7 +76,7 @@ def test_previous_scan_ignores_other_images(tmp_path):
     )
 
     assert previous is not None
-    assert previous["security_score"] == 80
+    assert previous["security_score"] == 90
     assert previous["image"] == "test-image:latest"
 
 
@@ -125,7 +125,7 @@ def test_previous_scan_returns_none_when_no_history(tmp_path):
     assert previous is None
 
 
-def test_previous_scan_returns_none_with_one_scan(tmp_path):
+def test_previous_scan_returns_latest_with_one_scan(tmp_path):
 
     save_history(
         {"security_score": 90},
@@ -138,7 +138,8 @@ def test_previous_scan_returns_none_with_one_scan(tmp_path):
         "test-image:latest",
     )
 
-    assert previous is None
+    assert previous is not None
+    assert previous["security_score"] == 90
 
 
 def test_load_history_empty_directory(tmp_path):

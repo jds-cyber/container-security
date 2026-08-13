@@ -69,7 +69,7 @@ def previous_scan(history_dir, image_name):
         if summary.get("image") == image_name
     ]
 
-    if len(matching) < 2:
+    if not matching:
         return None
 
-    return matching[-2]
+    return matching[-1]
