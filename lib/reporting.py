@@ -78,12 +78,18 @@ def severity_pie_chart(summary):
     )
 
 
-def security_score_trend():
+def security_score_trend(image_name):
     """
     Build a security score trend.
     """
 
     history = load_history()
+
+    history = [
+        report
+        for report in history
+        if report.get("image") == image_name
+    ]
 
     if not history:
         return ""
@@ -146,7 +152,7 @@ def generate_report(
         policy_failures=summary.get("policy_failures", []),
         bar_chart=severity_bar_chart(summary),
         pie_chart=severity_pie_chart(summary),
-        trend_chart=security_score_trend(),
+        trend_chart=security_score_trend(image_name),
     )
 
     Path(output).write_text(html)

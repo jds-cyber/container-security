@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from lib.reporting import generate_report, security_comparison
+from lib.reporting import generate_report, security_comparison, security_score_trend
 from lib.trends import load_history
 
 
@@ -141,3 +141,56 @@ def test_generate_report_displays_policy_failures(tmp_path):
     assert "Policy Failures" in content
     assert "Critical vulnerabilities exceed limit." in content
     assert "High vulnerabilities exceed limit." in content
+
+
+def test_security_score_trend_filters_by_image(tmp_path, monkeypatch):
+
+    history = [
+        {
+            "scan": "2026-08-10",
+            "security_score": 80,
+            "image": "test-image:latest",
+        },
+        {
+            "scan": "2026-08-11",
+            "security_score": 90,
+            "image": "test-image:latest",
+        },
+        {
+            "scan": "2026-08-12",
+            "security_score": 60,
+            "image": "other-image:latest",
+        },
+    ]
+
+    monkeypatch.setattr(
+        "lib.reporting.load_history",
+        lambda: history,
+    )
+
+    chart = security_score_trend("test-image:latest")
+
+    assert chart
+    assert "2026-08-10" in chart
+    assert "2026-08-11" in chart
+    assert "2026-08-12" not in chart
+
+
+def test_security_score_trend_returns_empty_when_no_matching_image(
+    monkeypatch,
+):
+
+    monkeypatch.setattr(
+        "lib.reporting.load_history",
+        lambda: [
+            {
+                "scan": "2026-08-10",
+                "security_score": 80,
+                "image": "other-image:latest",
+            }
+        ],
+    )
+
+    chart = security_score_trend("test-image:latest")
+
+    assert chart == ""
