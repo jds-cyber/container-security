@@ -241,3 +241,100 @@ def test_report_rejects_empty_summary(tmp_path):
 
     assert result.returncode == 1
     assert "Invalid summary structure" in result.stdout
+
+
+def test_report_uses_configured_history_for_trend(tmp_path):
+    history_dir = tmp_path / "custom-history"
+    history_dir.mkdir()
+
+    first_summary = tmp_path / "first.json"
+    first_output = tmp_path / "first.html"
+
+    first_summary.write_text(
+        json.dumps(
+            {
+                "findings": 1,
+                "unique_vulnerabilities": 1,
+                "critical": 0,
+                "high": 1,
+                "medium": 0,
+                "low": 0,
+                "negligible": 0,
+                "unknown": 0,
+                "weighted_risk": 5,
+                "security_score": 75,
+                "grade": "C",
+                "vulnerability_ids": [
+                    "CVE-2021-44228"
+                ],
+            }
+        )
+    )
+
+    env = dict(os.environ)
+    env["CONTAINER_SECURITY_HISTORY"] = str(history_dir)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPORT_SCRIPT),
+            str(first_summary),
+            str(first_output),
+            "test-image:latest",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        env=env,
+    )
+
+    assert result.returncode == 0
+
+    second_summary = tmp_path / "second.json"
+    second_output = tmp_path / "second.html"
+
+    second_summary.write_text(
+        json.dumps(
+            {
+                "findings": 1,
+                "unique_vulnerabilities": 1,
+                "critical": 0,
+                "high": 1,
+                "medium": 0,
+                "low": 0,
+                "negligible": 0,
+                "unknown": 0,
+                "weighted_risk": 3,
+                "security_score": 90,
+                "grade": "A",
+                "vulnerability_ids": [
+                    "CVE-2021-44228"
+                ],
+            }
+        )
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPORT_SCRIPT),
+            str(second_summary),
+            str(second_output),
+            "test-image:latest",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        env=env,
+    )
+
+    assert result.returncode == 0
+    assert second_output.exists()
+
+    history_files = list(history_dir.glob("*.json"))
+
+    assert len(history_files) == 2
+
+    content = second_output.read_text()
+
+    assert "Security Score Trend" in content
