@@ -28,9 +28,14 @@ report:
 	@./scripts/report.py "$(SUMMARY)" "$(HTML)" "$(IMAGE)"
 
 security-report:
+	security-report:
 	@$(MAKE) scan IMAGE="$(IMAGE)"
 	@set +e; \
 	$(MAKE) summarize REPORT="$(REPORT)"; \
 	SUMMARY_EXIT=$$?; \
 	$(MAKE) report IMAGE="$(IMAGE)"; \
+	REPORT_EXIT=$$?; \
+	if [ $$REPORT_EXIT -ne 0 ]; then \
+		exit $$REPORT_EXIT; \
+	fi; \
 	exit $$SUMMARY_EXIT
