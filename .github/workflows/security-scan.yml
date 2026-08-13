@@ -99,6 +99,17 @@ jobs:
                   f"## Policy Status: "
                   f"{os.environ['POLICY_STATUS']}\n\n"
               )
+
+              if summary.get("policy_failures"):
+                  f.write("### Policy Failures:\n\n")
+
+                  for failure in summary["policy_failures"]:
+                      f.write(f"- ❌ {failure}\n")
+
+                  f.write("\n")
+              else:
+                  f.write("No policy failures detected.\n\n")
+
               f.write("| Metric | Value |\n")
               f.write("|---|---:|\n")
               f.write(f"| Findings | {summary['findings']} |\n")
