@@ -105,7 +105,7 @@ def test_security_score_trend_filters_by_image(tmp_path, monkeypatch):
 
     monkeypatch.setattr(
         "lib.reporting.load_history",
-        lambda: history,
+        lambda history_dir: history,
     )
 
     chart = security_score_trend("test-image:latest")
@@ -122,7 +122,7 @@ def test_security_score_trend_returns_empty_when_no_matching_image(
 
     monkeypatch.setattr(
         "lib.reporting.load_history",
-        lambda: [
+        lambda history_dir: [
             {
                 "scan": "2026-08-10",
                 "security_score": 80,

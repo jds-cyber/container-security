@@ -30,15 +30,28 @@ def save_history(summary, directory="reports/history", image_name="Unknown"):
 def load_history(history_dir):
     """
     Load previous scan summaries.
-    """
 
+    Include scan identifier from filename for trend reporting.
+    """
     history_path = Path(history_dir)
 
     summaries = []
 
     for file in sorted(history_path.glob("*.json")):
         with open(file, "r") as f:
-            summaries.append(json.load(f))
+            summary = json.load(f)
+
+        if not isinstance(summary, dict):
+            raise ValueError(
+                f"Invalid history summary structure: {file}"
+            )
+
+        summaries.append(
+            {
+                "scan": file.stem,
+                **summary,
+            }
+        )
 
     return summaries
 

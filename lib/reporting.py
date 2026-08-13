@@ -3,7 +3,7 @@ import plotly.io as pio
 from pathlib import Path
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
-from lib.trends import load_history
+from lib.history import load_history
 from lib.comparison import (
     compare_scores,
     compare_vulnerabilities,
@@ -78,12 +78,11 @@ def severity_pie_chart(summary):
     )
 
 
-def security_score_trend(image_name):
+def security_score_trend(image_name, history_dir="reports/history"):
     """
     Build a security score trend.
     """
-
-    history = load_history()
+    history = load_history(history_dir)
 
     history = [
         report
