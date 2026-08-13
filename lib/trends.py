@@ -14,6 +14,11 @@ def load_history(directory="reports/history"):
 
         summary = json.loads(report_file.read_text())
 
+        if not isinstance(summary, dict):
+            raise ValueError(
+                f"Invalid history summary structure: {report_file}"
+            )
+
         history.append(
             {
                 "scan": report_file.stem,
