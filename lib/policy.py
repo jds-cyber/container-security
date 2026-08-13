@@ -104,23 +104,29 @@ def evaluate(summary, policy):
             "Invalid policy configuration: policy must be a mapping."
         )
 
-    failures = []
+    severity_rules = {
+        "critical": "max_critical",
+        "high": "max_high",
+        "medium": "max_medium",
+    }
 
     fail_on = [
         severity.lower()
         for severity in policy.get("fail_on", [])
     ]
 
-    if "critical" in fail_on:
-        if summary.get("critical", 0) > rules.get("max_critical", 0):
-            failures.append( "Critical vulnerabilities exceed limit." )
+    failures = []
 
-    if "high" in fail_on:
-        if summary.get("high", 0) > rules.get("max_high", 0):
-            failures.append( "High vulnerabilities exceed limit." )
+    for severity, rule in severity_rules.items():
+        if severity not in fail_on:
+            continue
 
-    if "medium" in fail_on:
-        if summary.get("medium", 0) > rules.get("max_medium", 0):
-            failures.append( "Medium vulnerabilities exceed limit." )
+        count = summary.get(severity, 0)
+        limit = rules.get(rule, 0)
+
+        if count > limit:
+            failures.append(
+                f"{severity.capitalize()} vulnerabilities exceed limit."
+            )
 
     return failures
