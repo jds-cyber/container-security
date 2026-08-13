@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from lib.reporting import generate_report, security_comparison, security_score_trend
-from lib.trends import load_history
+from lib.history import load_history
 
 
 def test_generate_report(tmp_path):
