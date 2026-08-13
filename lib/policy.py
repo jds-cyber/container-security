@@ -35,11 +35,13 @@ def load_policy(path):
                     f"Invalid policy configuration: '{key}' cannot be negative"
                 )
 
-    if "fail_on" in policy:
-        if not isinstance(policy["fail_on"], list):
-            raise ValueError(
-                "Invalid policy configuration: 'fail_on' must be a list"
-            )
+    if "fail_on" not in policy:
+        policy["fail_on"] = []
+
+    elif not isinstance(policy["fail_on"], list):
+        raise ValueError(
+            "Invalid policy configuration: 'fail_on' must be a list"
+        )
 
     valid_severities = {"critical", "high", "medium"}
 

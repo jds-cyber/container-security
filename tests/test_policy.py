@@ -705,3 +705,20 @@ def test_policy_allows_empty_policy_rules():
     failures = evaluate(summary, policy)
 
     assert failures == []
+
+
+def test_load_policy_defaults_missing_fail_on_to_empty_list(tmp_path):
+    policy_file = tmp_path / "policy.yml"
+
+    policy_file.write_text(
+        """
+policy:
+  max_critical: 0
+  max_high: 10
+  max_medium: 100
+"""
+    )
+
+    policy = load_policy(policy_file)
+
+    assert policy["fail_on"] == []
