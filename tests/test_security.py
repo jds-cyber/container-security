@@ -5,6 +5,7 @@ from lib.security import (
     security_grade,
     risk_level,
     empty_summary,
+    normalize_grype_match
 )
 
 
@@ -12,19 +13,19 @@ def test_security_summary():
     matches = [
         {
             "vulnerability": {
-                "id": "CVE-001",
+                "id": "CVE-2026-0001",
                 "severity": "Critical"
             }
         },
         {
             "vulnerability": {
-                "id": "CVE-002",
+                "id": "CVE-2026-0002",
                 "severity": "High"
             }
         },
         {
             "vulnerability": {
-                "id": "CVE-003",
+                "id": "CVE-2026-0003",
                 "severity": "Medium"
             }
         }
@@ -77,19 +78,19 @@ def test_unique_vulnerabilities():
     matches = [
         {
             "vulnerability": {
-                "id": "CVE-001",
+                "id": "CVE-2026-0001",
                 "severity": "Critical"
             }
         },
         {
             "vulnerability": {
-                "id": "CVE-001",
+                "id": "CVE-2026-0001",
                 "severity": "High"
             }
         },
         {
             "vulnerability": {
-                "id": "CVE-002",
+                "id": "CVE-2026-0002",
                 "severity": "Medium"
             }
         }
@@ -135,3 +136,65 @@ def test_risk_level():
     assert risk_level(75) == "MODERATE"
     assert risk_level(55) == "HIGH"
     assert risk_level(25) == "CRITICAL"
+
+
+def test_normalize_grype_match():
+
+    match = {
+        "vulnerability": {
+            "id": "CVE-2026-1234",
+            "severity": "High",
+            "fix": {
+                "versions": ["3.0.14"]
+            },
+        },
+        "artifact": {
+            "name": "openssl",
+            "version": "3.0.2",
+        },
+    }
+
+    vulnerability = normalize_grype_match(match)
+
+    assert vulnerability is not None
+    assert vulnerability.id == "CVE-2026-1234"
+    assert vulnerability.severity == "high"
+    assert vulnerability.package == "openssl"
+    assert vulnerability.installed_version == "3.0.2"
+    assert vulnerability.fixed_version == "3.0.14"
+
+
+def test_normalize_grype_match_without_fix():
+
+    match = {
+        "vulnerability": {
+            "id": "CVE-2026-1234",
+            "severity": "High",
+        },
+        "artifact": {
+            "name": "openssl",
+            "version": "3.0.2",
+        },
+    }
+
+    vulnerability = normalize_grype_match(match)
+
+    assert vulnerability is not None
+    assert vulnerability.fixed_version is None
+
+
+def test_normalize_grype_match_without_vulnerability_id():
+
+    match = {
+        "vulnerability": {
+            "severity": "High",
+        },
+        "artifact": {
+            "name": "openssl",
+            "version": "3.0.2",
+        },
+    }
+
+    vulnerability = normalize_grype_match(match)
+
+    assert vulnerability is None

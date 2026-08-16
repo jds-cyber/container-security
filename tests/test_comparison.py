@@ -94,3 +94,188 @@ def test_compare_severity():
     assert result["low"]["delta"] == -1
     assert result["negligible"]["delta"] == -5
     assert result["unknown"]["delta"] == 0
+
+
+def test_compare_scores_rejects_invalid_previous_score():
+
+    previous = {"security_score": "90"}
+    current = {"security_score": 95}
+
+    try:
+        compare_scores(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_scores_rejects_invalid_current_score():
+
+    previous = {"security_score": 90}
+    current = {"security_score": "95"}
+
+    try:
+        compare_scores(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_scores_rejects_out_of_range_score():
+
+    previous = {"security_score": 90}
+    current = {"security_score": 101}
+
+    try:
+        compare_scores(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_scores_rejects_negative_score():
+
+    previous = {"security_score": -1}
+    current = {"security_score": 90}
+
+    try:
+        compare_scores(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_scores_rejects_missing_previous_score():
+
+    previous = {}
+    current = {"security_score": 90}
+
+    try:
+        compare_scores(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_scores_rejects_missing_current_score():
+
+    previous = {"security_score": 90}
+    current = {}
+
+    try:
+        compare_scores(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_vulnerabilities_rejects_invalid_previous_ids():
+
+    previous = {
+        "vulnerability_ids": [
+            "CVE-2026-1234",
+            None,
+        ]
+    }
+
+    current = {
+        "vulnerability_ids": [
+            "CVE-2026-1234",
+        ]
+    }
+
+    try:
+        compare_vulnerabilities(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_vulnerabilities_rejects_invalid_current_ids():
+
+    previous = {
+        "vulnerability_ids": [
+            "CVE-2026-1234",
+        ]
+    }
+
+    current = {
+        "vulnerability_ids": [
+            "",
+        ]
+    }
+
+    try:
+        compare_vulnerabilities(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_vulnerabilities_rejects_non_list_ids():
+
+    previous = {
+        "vulnerability_ids": "CVE-2026-1234"
+    }
+
+    current = {
+        "vulnerability_ids": [
+            "CVE-2026-1234",
+        ]
+    }
+
+    try:
+        compare_vulnerabilities(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_severity_rejects_invalid_count():
+
+    previous = {
+        "critical": "5",
+    }
+
+    current = {
+        "critical": 6,
+    }
+
+    try:
+        compare_severity(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_severity_rejects_negative_count():
+
+    previous = {
+        "critical": -1,
+    }
+
+    current = {
+        "critical": 6,
+    }
+
+    try:
+        compare_severity(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_severity_rejects_boolean_count():
+
+    previous = {
+        "critical": True,
+    }
+
+    current = {
+        "critical": 6,
+    }
+
+    try:
+        compare_severity(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass

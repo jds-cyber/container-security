@@ -1,3 +1,6 @@
+from lib.vulnerability import Vulnerability
+
+
 def empty_summary():
     """
     Create an empty vulnerability summary.
@@ -7,6 +10,7 @@ def empty_summary():
         "findings": 0,
         "unique_vulnerabilities": 0,
         "vulnerability_ids": [],
+        "vulnerabilities": [],
         "critical": 0,
         "high": 0,
         "medium": 0,
@@ -19,34 +23,77 @@ def empty_summary():
         "risk_level": "",
     }
 
+
+def normalize_grype_match(match):
+    """
+    Convert a Grype match into the scanner-neutral Vulnerability model.
+    """
+
+    vulnerability = match.get("vulnerability", {})
+    artifact = match.get("artifact", {})
+
+    vulnerability_id = vulnerability.get("id")
+
+    if not vulnerability_id:
+        return None
+
+    return Vulnerability(
+        vulnerability_id=vulnerability_id,
+        severity=vulnerability.get("severity", "unknown").lower(),
+        package=artifact.get("name"),
+        installed_version=artifact.get("version"),
+        fixed_version=(
+            vulnerability.get("fix", {}).get("versions", [None])[0]
+            if vulnerability.get("fix")
+            else None
+        ),
+    )
+
+
 def summarize(matches):
     """
     Extract vulnerability summary counts from Grype matches.
     """
+
     summary = empty_summary()
 
     summary["findings"] = len(matches)
 
-    vulnerability_ids = {
-            match.get("vulnerability", {}).get("id")
-            for match in matches
-            if match.get("vulnerability", {}).get("id")
-        }
-
-    summary["unique_vulnerabilities"] = len(vulnerability_ids)
-    summary["vulnerability_ids"] = sorted(vulnerability_ids)
-
     for match in matches:
-        severity = (
-            match.get("vulnerability", {})
-            .get("severity", "unknown")
-            .lower()
+        vulnerability = normalize_grype_match(match)
+
+        if vulnerability is None:
+            continue
+
+        summary["vulnerabilities"].append(
+            vulnerability.to_dict()
         )
 
-        if severity in summary:
+        summary["vulnerability_ids"].append(
+            vulnerability.id
+        )
+
+        severity = vulnerability.severity
+
+        if severity in (
+            "critical",
+            "high",
+            "medium",
+            "low",
+            "negligible",
+            "unknown",
+        ):
             summary[severity] += 1
         else:
             summary["unknown"] += 1
+
+    summary["vulnerability_ids"] = sorted(
+        set(summary["vulnerability_ids"])
+    )
+
+    summary["unique_vulnerabilities"] = len(
+        summary["vulnerability_ids"]
+    )
 
     return summary
 

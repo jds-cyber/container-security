@@ -199,10 +199,11 @@ def test_load_history_uses_filename_for_scan_identifier(tmp_path):
         )
     )
 
-    history = load_history(tmp_path)
-
-    assert len(history) == 1
-    assert history[0]["scan"] == "2026-08-13_120000-000000"
+    try:
+        load_history(tmp_path)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
 
 
 def test_load_history_rejects_missing_history_metadata(tmp_path):
@@ -212,6 +213,158 @@ def test_load_history_rejects_missing_history_metadata(tmp_path):
     file.write_text(
         json.dumps(
             {
+                "security_score": 90,
+            }
+        )
+    )
+
+    try:
+        load_history(tmp_path)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_load_history_rejects_invalid_image_type(tmp_path):
+    file = tmp_path / "2026-08-13_120000-000000.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "image": 12345,
+                "scan_id": "2026-08-13_120000-000000",
+                "scan_timestamp": "2026-08-13T12:00:00",
+                "security_score": 90,
+            }
+        )
+    )
+
+    try:
+        load_history(tmp_path)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_load_history_rejects_empty_image(tmp_path):
+    file = tmp_path / "2026-08-13_120000-000000.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "image": "",
+                "scan_id": "2026-08-13_120000-000000",
+                "scan_timestamp": "2026-08-13T12:00:00",
+                "security_score": 90,
+            }
+        )
+    )
+
+    try:
+        load_history(tmp_path)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_load_history_rejects_scan_id_mismatch(tmp_path):
+    file = tmp_path / "2026-08-13_120000-000000.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "image": "test-image:latest",
+                "scan_id": "different-scan-id",
+                "scan_timestamp": "2026-08-13T12:00:00",
+                "security_score": 90,
+            }
+        )
+    )
+
+    try:
+        load_history(tmp_path)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_load_history_rejects_invalid_scan_timestamp(tmp_path):
+    file = tmp_path / "2026-08-13_120000-000000.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "image": "test-image:latest",
+                "scan_id": "2026-08-13_120000-000000",
+                "scan_timestamp": "not-a-timestamp",
+                "security_score": 90,
+            }
+        )
+    )
+
+    try:
+        load_history(tmp_path)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_load_history_rejects_invalid_security_score(tmp_path):
+    file = tmp_path / "2026-08-13_120000-000000.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "image": "test-image:latest",
+                "scan_id": "2026-08-13_120000-000000",
+                "scan_timestamp": "2026-08-13T12:00:00",
+                "security_score": "90",
+            }
+        )
+    )
+
+    try:
+        load_history(tmp_path)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_load_history_rejects_invalid_severity_count(tmp_path):
+    file = tmp_path / "2026-08-13_120000-000000.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "image": "test-image:latest",
+                "scan_id": "2026-08-13_120000-000000",
+                "scan_timestamp": "2026-08-13T12:00:00",
+                "critical": -1,
+                "security_score": 90,
+            }
+        )
+    )
+
+    try:
+        load_history(tmp_path)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_load_history_rejects_invalid_vulnerability_ids(tmp_path):
+    file = tmp_path / "2026-08-13_120000-000000.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "image": "test-image:latest",
+                "scan_id": "2026-08-13_120000-000000",
+                "scan_timestamp": "2026-08-13T12:00:00",
+                "vulnerability_ids": [
+                    "CVE-2026-1234",
+                    None,
+                ],
                 "security_score": 90,
             }
         )

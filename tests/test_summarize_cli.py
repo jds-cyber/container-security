@@ -23,11 +23,11 @@ def write_report(path, critical=0, high=0, medium=0):
             report["matches"].append(
                 {
                     "vulnerability": {
-                        "id": f"TEST-{severity}-{_}"
+                        "id": f"CVE-2026-2034"
                     },
                     "matchDetails": [],
                     "vulnerability": {
-                        "id": f"TEST-{severity}-{_}",
+                        "id": f"CVE-2026-6882",
                         "severity": severity,
                     },
                 }
