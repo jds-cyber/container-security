@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from lib.vulnerability import (
     VulnerabilityIntelligence,
-    _validate_vulnerability_id
+    CVSS,
+    _validate_vulnerability_id,
 )
 
 
@@ -82,13 +84,43 @@ class RecordIntelligenceProvider(IntelligenceProvider):
         if record is None:
             return None
 
+        # CVSS deserialization
+        cvss_data = record.get("cvss")
+        cvss = None
+
+        if cvss_data is not None:
+            cvss = CVSS(
+                version=cvss_data["version"],
+                score=cvss_data["score"],
+                vector=cvss_data.get("vector"),
+                severity=cvss_data.get("severity"),
+            )
+
+        # Published & Modified deserialization
+        published_data = record.get("published")
+        published = None
+
+        if published_data is not None:
+            published = datetime.fromisoformat(published_data)
+
+        modified_data = record.get("modified")
+        modified = None
+
+        if modified_data is not None:
+            modified = datetime.fromisoformat(modified_data)
+
         return VulnerabilityIntelligence(
             vulnerability_id=record["vulnerability_id"],
             description=record.get("description"),
-            cvss=record.get("cvss"),
+            cvss=cvss,
             cwe=record.get("cwe"),
-            published=record.get("published"),
-            modified=record.get("modified"),
+            published=published,
+            modified=modified,
             references=record.get("references"),
 
         )
+
+
+def enrich_vulnerabilities(vulnerabilities, provider):
+    for vulnerability in vulnerabilities:
+        vulnerability.load_intelligence(provider)
