@@ -36,6 +36,7 @@ def test_intelligence_provider_get_returns_intelligence():
 
 
 def test_intelligence_provider_cannot_be_instantiated():
+
     with pytest.raises(TypeError):
         IntelligenceProvider()
 

@@ -24,46 +24,15 @@ def empty_summary():
     }
 
 
-def normalize_grype_match(match):
+def summarize(vulnerabilities):
     """
-    Convert a Grype match into the scanner-neutral Vulnerability model.
-    """
-
-    vulnerability = match.get("vulnerability", {})
-    artifact = match.get("artifact", {})
-
-    vulnerability_id = vulnerability.get("id")
-
-    if not vulnerability_id:
-        return None
-
-    return Vulnerability(
-        vulnerability_id=vulnerability_id,
-        severity=vulnerability.get("severity", "unknown").lower(),
-        package=artifact.get("name"),
-        installed_version=artifact.get("version"),
-        fixed_version=(
-            vulnerability.get("fix", {}).get("versions", [None])[0]
-            if vulnerability.get("fix")
-            else None
-        ),
-    )
-
-
-def summarize(matches):
-    """
-    Extract vulnerability summary counts from Grype matches.
+    Extract vulnerability summary counts from normalized vulnerabilities.
     """
 
     summary = empty_summary()
+    summary["findings"] = len(vulnerabilities)
 
-    summary["findings"] = len(matches)
-
-    for match in matches:
-        vulnerability = normalize_grype_match(match)
-
-        if vulnerability is None:
-            continue
+    for vulnerability in vulnerabilities:
 
         summary["vulnerabilities"].append(
             vulnerability.to_dict()

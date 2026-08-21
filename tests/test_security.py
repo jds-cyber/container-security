@@ -5,33 +5,28 @@ from lib.security import (
     security_grade,
     risk_level,
     empty_summary,
-    normalize_grype_match
 )
+from lib.vulnerability import Vulnerability
 
 
 def test_security_summary():
-    matches = [
-        {
-            "vulnerability": {
-                "id": "CVE-2026-0001",
-                "severity": "Critical"
-            }
-        },
-        {
-            "vulnerability": {
-                "id": "CVE-2026-0002",
-                "severity": "High"
-            }
-        },
-        {
-            "vulnerability": {
-                "id": "CVE-2026-0003",
-                "severity": "Medium"
-            }
-        }
+
+    vulnerabilities = [
+        Vulnerability(
+            "CVE-2026-0001",
+            severity="critical",
+        ),
+        Vulnerability(
+            "CVE-2026-0002",
+            severity="high",
+        ),
+        Vulnerability(
+            "CVE-2026-0003",
+            severity="medium",
+        ),
     ]
 
-    result = summarize(matches)
+    result = summarize(vulnerabilities)
 
     assert result["critical"] == 1
     assert result["high"] == 1
@@ -75,28 +70,22 @@ def test_security_score():
 
 def test_unique_vulnerabilities():
 
-    matches = [
-        {
-            "vulnerability": {
-                "id": "CVE-2026-0001",
-                "severity": "Critical"
-            }
-        },
-        {
-            "vulnerability": {
-                "id": "CVE-2026-0001",
-                "severity": "High"
-            }
-        },
-        {
-            "vulnerability": {
-                "id": "CVE-2026-0002",
-                "severity": "Medium"
-            }
-        }
+    vulnerabilities = [
+        Vulnerability(
+            "CVE-2026-0001",
+            severity="critical",
+        ),
+        Vulnerability(
+            "CVE-2026-0001",
+            severity="high",
+        ),
+        Vulnerability(
+            "CVE-2026-0003",
+            severity="medium",
+        ),
     ]
 
-    result = summarize(matches)
+    result = summarize(vulnerabilities)
 
     assert result["unique_vulnerabilities"] == 2
 
@@ -136,65 +125,3 @@ def test_risk_level():
     assert risk_level(75) == "MODERATE"
     assert risk_level(55) == "HIGH"
     assert risk_level(25) == "CRITICAL"
-
-
-def test_normalize_grype_match():
-
-    match = {
-        "vulnerability": {
-            "id": "CVE-2026-1234",
-            "severity": "High",
-            "fix": {
-                "versions": ["3.0.14"]
-            },
-        },
-        "artifact": {
-            "name": "openssl",
-            "version": "3.0.2",
-        },
-    }
-
-    vulnerability = normalize_grype_match(match)
-
-    assert vulnerability is not None
-    assert vulnerability.id == "CVE-2026-1234"
-    assert vulnerability.severity == "high"
-    assert vulnerability.package == "openssl"
-    assert vulnerability.installed_version == "3.0.2"
-    assert vulnerability.fixed_version == "3.0.14"
-
-
-def test_normalize_grype_match_without_fix():
-
-    match = {
-        "vulnerability": {
-            "id": "CVE-2026-1234",
-            "severity": "High",
-        },
-        "artifact": {
-            "name": "openssl",
-            "version": "3.0.2",
-        },
-    }
-
-    vulnerability = normalize_grype_match(match)
-
-    assert vulnerability is not None
-    assert vulnerability.fixed_version is None
-
-
-def test_normalize_grype_match_without_vulnerability_id():
-
-    match = {
-        "vulnerability": {
-            "severity": "High",
-        },
-        "artifact": {
-            "name": "openssl",
-            "version": "3.0.2",
-        },
-    }
-
-    vulnerability = normalize_grype_match(match)
-
-    assert vulnerability is None

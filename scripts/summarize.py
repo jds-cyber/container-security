@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import json
 import sys
 import argparse
@@ -8,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from lib.policy import load_policy, evaluate
 from lib.security import (
     summarize,
     weighted_risk,
@@ -15,11 +15,20 @@ from lib.security import (
     security_grade,
     risk_level,
 )
-from lib.policy import load_policy, evaluate
+from lib.scanner import (
+    create_default_registry,
+    load_scan_report,
+    parse_scan,
+)
 
 parser = argparse.ArgumentParser(description="Summarize container security scan results")
 
-parser.add_argument("report", help="Path to Grype JSON report")
+parser.add_argument("report", help="Path to scanner report")
+parser.add_argument(
+    "--scanner",
+    required=True,
+    help="Scanner name"
+)
 parser.add_argument(
     "--policy",
     default="config/security_policy.yml",
@@ -27,23 +36,30 @@ parser.add_argument(
 
 args = parser.parse_args()
 
+registry = create_default_registry()
+
 try:
-    with open(args.report) as f:
-        report = json.load(f)
+    report = load_scan_report(
+        registry,
+        args.scanner,
+        Path(args.report),
+    )
+
+    vulnerabilities = parse_scan(
+        registry,
+        args.scanner,
+        report,
+    )
 
 except FileNotFoundError:
     print(f"Report not found: {args.report}")
     sys.exit(1)
 
-except json.JSONDecodeError:
-    print("Invalid JSON report")
+except ValueError as exc:
+    print(str(exc), file=sys.stderr)
     sys.exit(1)
 
-if not isinstance(report, dict) or "matches" not in report:
-    print("Invalid report structure", file=sys.stderr)
-    sys.exit(1)
-
-summary = summarize(report["matches"])
+summary = summarize(vulnerabilities=vulnerabilities)
 
 summary["weighted_risk"] = weighted_risk(summary)
 summary["security_score"] = security_score(summary)

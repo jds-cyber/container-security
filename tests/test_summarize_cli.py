@@ -23,14 +23,11 @@ def write_report(path, critical=0, high=0, medium=0):
             report["matches"].append(
                 {
                     "vulnerability": {
-                        "id": f"CVE-2026-2034"
-                    },
-                    "matchDetails": [],
-                    "vulnerability": {
-                        "id": f"CVE-2026-6882",
+                        "id": "CVE-2026-2034",
                         "severity": severity,
                     },
-                }
+                    "matchDetails": [],
+                },
             )
 
     path.write_text(json.dumps(report))
@@ -61,6 +58,8 @@ fail_on:
             sys.executable,
             str(SUMMARIZE_SCRIPT),
             str(report_file),
+            "--scanner",
+            "grype",
             "--policy",
             str(policy_file),
         ],
@@ -98,6 +97,8 @@ fail_on:
             sys.executable,
             str(SUMMARIZE_SCRIPT),
             str(report_file),
+            "--scanner",
+            "grype",
             "--policy",
             str(policy_file),
         ],
@@ -122,6 +123,8 @@ def test_summarize_fails_when_policy_file_is_missing(tmp_path):
             sys.executable,
             str(SUMMARIZE_SCRIPT),
             str(report_file),
+            "--scanner",
+            "grype",
             "--policy",
             str(missing_policy),
         ],
@@ -160,6 +163,8 @@ fail_on:
             sys.executable,
             str(SUMMARIZE_SCRIPT),
             str(report_file),
+            "--scanner",
+            "grype",
             "--policy",
             str(policy_file),
         ],
@@ -169,7 +174,7 @@ fail_on:
     )
 
     assert result.returncode == 1
-    assert "Invalid report structure" in result.stderr
+    assert "Invalid Grype report structure" in result.stderr
 
 
 def test_summarize_fails_when_policy_yaml_is_invalid(tmp_path):
@@ -198,6 +203,8 @@ fail_on:
             sys.executable,
             str(SUMMARIZE_SCRIPT),
             str(report_file),
+            "--scanner",
+            "grype",
             "--policy",
             str(policy_file),
         ],
@@ -240,6 +247,8 @@ fail_on:
             sys.executable,
             str(SUMMARIZE_SCRIPT),
             str(report_file),
+            "--scanner",
+            "grype",
             "--policy",
             str(policy_file),
         ],
@@ -286,6 +295,8 @@ fail_on:
             sys.executable,
             str(SUMMARIZE_SCRIPT),
             str(report_file),
+            "--scanner",
+            "grype",
             "--policy",
             str(policy_file),
         ],
@@ -337,3 +348,58 @@ def test_generate_report_policy_status_comes_from_summary(tmp_path):
 
     assert "FAIL" in content
     assert "Test policy failure." in content
+
+
+def test_summarize_accepts_scanner_argument(tmp_path):
+
+    report_file = tmp_path / "report.json"
+
+    write_report(
+        report_file,
+        critical=0,
+        high=5,
+        medium=5,
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SUMMARIZE_SCRIPT),
+            str(report_file),
+            "--scanner",
+            "grype",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 0
+
+
+def test_summarize_rejects_unknown_scanner(tmp_path):
+
+    report_file = tmp_path / "report.json"
+
+    write_report(
+        report_file,
+        critical=0,
+        high=0,
+        medium=0,
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SUMMARIZE_SCRIPT),
+            str(report_file),
+            "--scanner",
+            "nessus"
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 1
+    assert "Unknown scanner: nessus" in result.stderr
