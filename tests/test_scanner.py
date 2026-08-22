@@ -175,6 +175,36 @@ def test_grype_adapter_parses_vulnerability_without_fix():
     assert result[0].fixed_version is None
 
 
+def test_grype_adapter_handles_empty_fix_versions():
+
+    adapter = GrypeAdapter()
+
+    report = {
+        "matches": [
+            {
+                "vulnerability": {
+                    "id": "CVE-2026-9999",
+                    "severity": "High",
+                    "fix": {
+                        "versions": [],
+                        "state": "not-fixed",
+                    },
+                },
+                "artifact": {
+                    "name": "example",
+                    "version": "1.0.0",
+                },
+            }
+        ]
+    }
+
+    result = adapter.parse(report)
+
+    assert len(result) == 1
+    assert result[0].id == "CVE-2026-9999"
+    assert result[0].fixed_version is None
+
+
 def test_scanner_registry_returns_none_for_unknown_scanner():
 
     registry = ScannerRegistry()

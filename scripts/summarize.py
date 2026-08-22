@@ -7,7 +7,39 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+
+def load_intelligence_records(path):
+    """
+    Load vulnerability intelligence records from a JSON file.
+    """
+
+    try:
+        with open(path) as f:
+            records = json.load(f)
+
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"Intelligence file not found: {path}"
+        )
+
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "Invalid intelligence JSON"
+        ) from exc
+
+    if not isinstance(records, dict):
+        raise ValueError(
+            "Invalid intelligence records structure"
+        )
+
+    return records
+
+
 from lib.policy import load_policy, evaluate
+from lib.intelligence import (
+    enrich_vulnerabilities,
+    RecordIntelligenceProvider,
+)
 from lib.security import (
     summarize,
     weighted_risk,
@@ -32,11 +64,35 @@ parser.add_argument(
 parser.add_argument(
     "--policy",
     default="config/security_policy.yml",
-    help="Path to security policy YAML")
+    help="Path to security policy YAML"
+)
+parser.add_argument(
+    "--intelligence",
+    help="Path to vulnerability intelligence JSON"
+)
 
 args = parser.parse_args()
-
 registry = create_default_registry()
+
+# --intelligence is optional
+intelligence_provider = None
+
+if args.intelligence:
+    try:
+        records = load_intelligence_records(
+            Path(args.intelligence)
+        )
+        intelligence_provider = RecordIntelligenceProvider(
+            records=records
+        )
+
+    except FileNotFoundError as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
+
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
 
 try:
     report = load_scan_report(
@@ -50,6 +106,12 @@ try:
         args.scanner,
         report,
     )
+
+    if intelligence_provider is not None:
+        enrich_vulnerabilities(
+            vulnerabilities,
+            intelligence_provider,
+        )
 
 except FileNotFoundError:
     print(f"Report not found: {args.report}")

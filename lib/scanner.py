@@ -73,16 +73,8 @@ class GrypeAdapter(ScannerAdapter):
                     package=artifact.get("name"),
                     installed_version=artifact.get("version"),
                     fixed_version=(
-                        vulnerability.get(
-                            "fix",
-                            {}
-                        ).get(
-                            "versions",
-                            [None],
-                        )[0]
-                        if vulnerability.get("fix")
-                        else None
-                    ),
+                        vulnerability.get("fix", {}).get("versions") or [None]
+                        )[0],
                 )
             )
 
