@@ -1,7 +1,8 @@
 import pytest
 from datetime import datetime
+
 from lib.vulnerability import (
-    Vulnerability, 
+    Vulnerability,
     VulnerabilityIntelligence,
     CVSS,
 )
@@ -9,9 +10,15 @@ from lib.intelligence import (
     IntelligenceProvider,
     StaticIntelligenceProvider,
     RecordIntelligenceProvider,
+    OSVIntelligenceProvider,
     enrich_vulnerabilities,
+    _convert_osv_cvss,
 )
 
+
+# ---------------------------------------------------------------------------
+# IntelligenceProvider
+# ---------------------------------------------------------------------------
 
 class TestProvider(IntelligenceProvider):
 
@@ -22,8 +29,9 @@ class TestProvider(IntelligenceProvider):
     def get(self, vulnerability_id):
         return VulnerabilityIntelligence(
             vulnerability_id=vulnerability_id,
-            description="Example vulnerability"
+            description="Example vulnerability",
         )
+
 
 def test_intelligence_provider_get_returns_intelligence():
 
@@ -64,6 +72,7 @@ def test_intelligence_provider_get_returns_none_when_not_found():
     provider = TestProvider()
 
     result = provider.get("CVE-2026-9999")
+
     assert result is None
 
 
@@ -85,21 +94,38 @@ def test_intelligence_provider_get_receives_vulnerability_id():
     provider = TestProvider()
 
     provider.get("CVE-2026-1234")
+
     assert provider.received_id == "CVE-2026-1234"
 
+
+def test_intelligence_provider_requires_name_implementation():
+
+    class TestProvider(IntelligenceProvider):
+
+        def get(self, vulnerability_id):
+            return None
+
+    with pytest.raises(TypeError):
+        TestProvider()
+
+
+# ---------------------------------------------------------------------------
+# StaticIntelligenceProvider
+# ---------------------------------------------------------------------------
 
 def test_static_intelligence_provider_returns_intelligence():
 
     intelligence = VulnerabilityIntelligence(
         "CVE-2026-20349",
-        description="Cisco heap-based vulnerability."
+        description="Cisco heap-based vulnerability.",
     )
 
     provider = StaticIntelligenceProvider(
-        intelligence=intelligence
+        intelligence=intelligence,
     )
 
     result = provider.get("CVE-2026-20349")
+
     assert result is intelligence
 
 
@@ -115,6 +141,7 @@ def test_static_intelligence_provider_returns_none_for_different_id():
     )
 
     result = provider.get("CVE-2026-9999")
+
     assert result is None
 
 
@@ -123,18 +150,8 @@ def test_static_intelligence_provider_defaults_to_none():
     provider = StaticIntelligenceProvider()
 
     result = provider.get("CVE-2026-1234")
+
     assert result is None
-
-
-def test_intelligence_provider_requires_name_implementation():
-
-    class TestProvider(IntelligenceProvider):
-
-        def get(self, vulnerability_id):
-            return None
-
-    with pytest.raises(TypeError):
-        TestProvider()
 
 
 def test_static_intelligence_provider_has_name():
@@ -142,58 +159,6 @@ def test_static_intelligence_provider_has_name():
     provider = StaticIntelligenceProvider()
 
     assert provider.name == "static"
-
-
-def test_record_intelligence_provider_returns_intelligence():
-
-    intelligence = VulnerabilityIntelligence(
-        "CVE-2021-44228",
-        description="A critical remote code execution (RCE) flaw in the Apache Log4j Java logging library."
-    )
-
-    provider = RecordIntelligenceProvider(
-        records={
-            "CVE-2021-44228": intelligence.to_dict()
-        }
-    )
-
-    result = provider.get("CVE-2021-44228")
-
-    assert isinstance(result, VulnerabilityIntelligence)
-    assert result.vulnerability_id == "CVE-2021-44228"
-    assert result.description == "A critical remote code execution (RCE) flaw in the Apache Log4j Java logging library."
-
-
-def test_record_intelligence_provider_returns_none_when_not_found():
-
-    provider = RecordIntelligenceProvider(
-        records={}
-    )
-
-    result = provider.get("CVE-2021-44228")
-    assert result is None
-
-
-def test_record_intelligence_provider_preservers_metadata():
-
-    intelligence = VulnerabilityIntelligence(
-        "CVE-2014-6271",
-        description="A vulnerability in the GNU Bash shell enabling remote code execution via environment variables.",
-        cwe=["CWE-78"],
-        references=["https://nvd.nist.gov/vuln/detail/cve-2014-6271"],
-    )
-
-    provider = RecordIntelligenceProvider(
-        records={
-            "CVE-2014-6271": intelligence.to_dict()
-        }
-    )
-
-    result = provider.get("CVE-2014-6271")
-
-    assert result.description == "A vulnerability in the GNU Bash shell enabling remote code execution via environment variables."
-    assert result.cwe == ["CWE-78"]
-    assert result.references == ["https://nvd.nist.gov/vuln/detail/cve-2014-6271"]
 
 
 def test_static_intelligence_provider_normalizes_vulnerability_id():
@@ -210,6 +175,127 @@ def test_static_intelligence_provider_normalizes_vulnerability_id():
     result = provider.get("cve-2026-1234")
 
     assert result is intelligence
+
+
+def test_static_intelligence_provider_returns_intelligence_for_vulnerability():
+
+    intelligence = VulnerabilityIntelligence(
+        "CVE-2017-0199",
+        description="Microsoft Wordpad Remote Code Execution Vulnerability",
+    )
+
+    provider = StaticIntelligenceProvider(
+        intelligence=intelligence,
+    )
+
+    vulnerability = Vulnerability(
+        "CVE-2017-0199"
+    )
+
+    result = provider.get(vulnerability.id)
+
+    assert result is intelligence
+    assert result.description == (
+        "Microsoft Wordpad Remote Code Execution Vulnerability"
+    )
+
+
+# ---------------------------------------------------------------------------
+# RecordIntelligenceProvider
+# ---------------------------------------------------------------------------
+
+def test_record_intelligence_provider_returns_intelligence():
+
+    intelligence = VulnerabilityIntelligence(
+        "CVE-2021-44228",
+        description=(
+            "A critical remote code execution (RCE) flaw in the "
+            "Apache Log4j Java logging library."
+        ),
+    )
+
+    provider = RecordIntelligenceProvider(
+        records={
+            "CVE-2021-44228": intelligence.to_dict()
+        }
+    )
+
+    result = provider.get("CVE-2021-44228")
+
+    assert isinstance(result, VulnerabilityIntelligence)
+    assert result.vulnerability_id == "CVE-2021-44228"
+    assert result.description == (
+        "A critical remote code execution (RCE) flaw in the "
+        "Apache Log4j Java logging library."
+    )
+
+
+def test_record_intelligence_provider_returns_none_when_not_found():
+
+    provider = RecordIntelligenceProvider(
+        records={}
+    )
+
+    result = provider.get("CVE-2021-44228")
+
+    assert result is None
+
+
+def test_record_intelligence_provider_preserves_metadata():
+
+    intelligence = VulnerabilityIntelligence(
+        "CVE-2014-6271",
+        description=(
+            "A vulnerability in the GNU Bash shell enabling remote "
+            "code execution via environment variables."
+        ),
+        cwe=["CWE-78"],
+        references=[
+            "https://nvd.nist.gov/vuln/detail/cve-2014-6271"
+        ],
+    )
+
+    provider = RecordIntelligenceProvider(
+        records={
+            "CVE-2014-6271": intelligence.to_dict()
+        }
+    )
+
+    result = provider.get("CVE-2014-6271")
+
+    assert result.description == (
+        "A vulnerability in the GNU Bash shell enabling remote "
+        "code execution via environment variables."
+    )
+    assert result.cwe == ["CWE-78"]
+    assert result.references == [
+        "https://nvd.nist.gov/vuln/detail/cve-2014-6271"
+    ]
+
+
+def test_record_intelligence_provider_reconstructs_aliases():
+
+    intelligence = VulnerabilityIntelligence(
+        "CVE-2021-44228",
+        description="Log4Shell",
+        aliases=[
+            "GHSA-jfh8-c2jp-5v3q",
+            "CVE-2021-44228",
+        ],
+    )
+
+    provider = RecordIntelligenceProvider(
+        records={
+            "CVE-2021-44228": intelligence.to_dict()
+        }
+    )
+
+    result = provider.get("CVE-2021-44228")
+
+    assert result.aliases == [
+        "GHSA-JFH8-C2JP-5V3Q",
+        "CVE-2021-44228",
+    ]
 
 
 def test_record_intelligence_provider_normalizes_vulnerability_id():
@@ -231,149 +317,19 @@ def test_record_intelligence_provider_normalizes_vulnerability_id():
     assert result.vulnerability_id == "CVE-2026-1234"
 
 
-def test_static_intelligence_provider_returns_intelligence_for_vulnerability():
-
-    intelligence = VulnerabilityIntelligence(
-        "CVE-2017-0199",
-        description="Microsoft Wordpad Remote Code Execution Vulnerability",
-    )
-
-    provider = StaticIntelligenceProvider(
-        intelligence=intelligence
-    )
-
-    vulnerability = Vulnerability(
-        "CVE-2017-0199"
-    )
-
-    result = provider.get(vulnerability.id)
-
-    assert result is intelligence
-    assert result.description == ("Microsoft Wordpad Remote Code Execution Vulnerability")
-
-
-def test_enrich_vulnerabilities_loads_intelligence():
-
-    intelligence = VulnerabilityIntelligence(
-        "CVE-2017-0144",
-        description="Windows SMBv1 Remote Code Execution Vulnerability"
-    )
-
-    provider = StaticIntelligenceProvider(
-        intelligence=intelligence
-    )
-
-    vulnerabilities = [
-        Vulnerability("CVE-2017-0144"),
-    ]
-
-    enrich_vulnerabilities(vulnerabilities, provider)
-
-    assert vulnerabilities[0].intelligence is intelligence
-
-
-def test_enrich_vulnerabilities_loads_intelligence_for_multiple_vulnerabilities():
-
-    intelligence = VulnerabilityIntelligence(
-        "CVE-2017-0199",
-        description="Microsoft Wordpad Remote Code Execution Vulnerability",
-    )
-
-    provider = RecordIntelligenceProvider(
-        records={
-            "CVE-2017-0199": intelligence.to_dict(),
-            "CVE-2012-1723": VulnerabilityIntelligence(
-                "CVE-2012-1723",
-                description="Java Applet Field Bytecode Verifier Cache Remote Code Execution"
-            ).to_dict(),
-        }
-    )
-
-    vulnerabilities = [
-        Vulnerability("CVE-2017-0199"),
-        Vulnerability("CVE-2012-1723")
-    ]
-
-    enrich_vulnerabilities(vulnerabilities, provider)
-
-    assert vulnerabilities[0].intelligence is not None
-    assert vulnerabilities[0].intelligence.vulnerability_id == "CVE-2017-0199"
-
-    assert vulnerabilities[1].intelligence is not None
-    assert vulnerabilities[1].intelligence.vulnerability_id == "CVE-2012-1723"
-
-
-def test_enrich_vulnerabilities_loads_intelligence_for_each_vulnerability():
-
-    intelligence1 = VulnerabilityIntelligence(
-        "CVE-2021-44228",
-        description="Log4Shell",
-    )
-
-    intelligence2 = VulnerabilityIntelligence(
-        "CVE-2014-6271",
-        description="Shellshock",
-    )
-
-    provider = RecordIntelligenceProvider(
-        records={
-            "CVE-2021-44228": intelligence1.to_dict(),
-            "CVE-2014-6271": intelligence2.to_dict(),
-        }
-    )
-
-    vulnerabilities = [
-        Vulnerability("CVE-2021-44228"),
-        Vulnerability("CVE-2014-6271"),
-    ]
-
-    enrich_vulnerabilities(vulnerabilities, provider)
-
-    assert vulnerabilities[0].intelligence.vulnerability_id == intelligence1.vulnerability_id
-    assert vulnerabilities[1].intelligence.vulnerability_id == intelligence2.vulnerability_id
-
-    assert vulnerabilities[0].intelligence.description == "Log4Shell"
-    assert vulnerabilities[1].intelligence.description == "Shellshock"
-
-
-def test_enrich_vulnerabilities_leaves_intelligence_none_when_not_found():
-
-    provider = RecordIntelligenceProvider(
-        records={}
-    )
-
-    vulnerabilities = [
-        Vulnerability("CVE-2021-34473"),
-    ]
-
-    enrich_vulnerabilities(vulnerabilities, provider)
-    assert vulnerabilities[0].intelligence is None
-
-
-def test_enrich_vulnerabilities_handles_empty_list():
-
-    provider = RecordIntelligenceProvider(
-            records={}
-    )
-
-    vulnerabilities = []
-
-    enrich_vulnerabilities(vulnerabilities, provider)
-
-
 def test_record_intelligence_provider_reconstructs_cvss():
 
     cvss = CVSS(
         version="3.1",
         score=9.8,
         vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-        severity="critical"
+        severity="critical",
     )
 
     intelligence = VulnerabilityIntelligence(
         "CVE-2021-44228",
         description="Log4Shell",
-        cvss=cvss
+        cvss=cvss,
     )
 
     provider = RecordIntelligenceProvider(
@@ -434,6 +390,133 @@ def test_record_intelligence_provider_reconstructs_full_intelligence():
     ]
 
 
+# ---------------------------------------------------------------------------
+# enrich_vulnerabilities
+# ---------------------------------------------------------------------------
+
+def test_enrich_vulnerabilities_loads_intelligence():
+
+    intelligence = VulnerabilityIntelligence(
+        "CVE-2017-0144",
+        description="Windows SMBv1 Remote Code Execution Vulnerability",
+    )
+
+    provider = StaticIntelligenceProvider(
+        intelligence=intelligence,
+    )
+
+    vulnerabilities = [
+        Vulnerability("CVE-2017-0144"),
+    ]
+
+    enrich_vulnerabilities(vulnerabilities, provider)
+
+    assert vulnerabilities[0].intelligence is intelligence
+
+
+def test_enrich_vulnerabilities_loads_intelligence_for_multiple_vulnerabilities():
+
+    intelligence = VulnerabilityIntelligence(
+        "CVE-2017-0199",
+        description="Microsoft Wordpad Remote Code Execution Vulnerability",
+    )
+
+    provider = RecordIntelligenceProvider(
+        records={
+            "CVE-2017-0199": intelligence.to_dict(),
+            "CVE-2012-1723": VulnerabilityIntelligence(
+                "CVE-2012-1723",
+                description=(
+                    "Java Applet Field Bytecode Verifier Cache "
+                    "Remote Code Execution"
+                ),
+            ).to_dict(),
+        }
+    )
+
+    vulnerabilities = [
+        Vulnerability("CVE-2017-0199"),
+        Vulnerability("CVE-2012-1723"),
+    ]
+
+    enrich_vulnerabilities(vulnerabilities, provider)
+
+    assert vulnerabilities[0].intelligence is not None
+    assert vulnerabilities[0].intelligence.vulnerability_id == (
+        "CVE-2017-0199"
+    )
+
+    assert vulnerabilities[1].intelligence is not None
+    assert vulnerabilities[1].intelligence.vulnerability_id == (
+        "CVE-2012-1723"
+    )
+
+
+def test_enrich_vulnerabilities_loads_intelligence_for_each_vulnerability():
+
+    intelligence1 = VulnerabilityIntelligence(
+        "CVE-2021-44228",
+        description="Log4Shell",
+    )
+
+    intelligence2 = VulnerabilityIntelligence(
+        "CVE-2014-6271",
+        description="Shellshock",
+    )
+
+    provider = RecordIntelligenceProvider(
+        records={
+            "CVE-2021-44228": intelligence1.to_dict(),
+            "CVE-2014-6271": intelligence2.to_dict(),
+        }
+    )
+
+    vulnerabilities = [
+        Vulnerability("CVE-2021-44228"),
+        Vulnerability("CVE-2014-6271"),
+    ]
+
+    enrich_vulnerabilities(vulnerabilities, provider)
+
+    assert (
+        vulnerabilities[0].intelligence.vulnerability_id
+        == intelligence1.vulnerability_id
+    )
+    assert (
+        vulnerabilities[1].intelligence.vulnerability_id
+        == intelligence2.vulnerability_id
+    )
+
+    assert vulnerabilities[0].intelligence.description == "Log4Shell"
+    assert vulnerabilities[1].intelligence.description == "Shellshock"
+
+
+def test_enrich_vulnerabilities_leaves_intelligence_none_when_not_found():
+
+    provider = RecordIntelligenceProvider(
+        records={}
+    )
+
+    vulnerabilities = [
+        Vulnerability("CVE-2021-34473"),
+    ]
+
+    enrich_vulnerabilities(vulnerabilities, provider)
+
+    assert vulnerabilities[0].intelligence is None
+
+
+def test_enrich_vulnerabilities_handles_empty_list():
+
+    provider = RecordIntelligenceProvider(
+        records={}
+    )
+
+    vulnerabilities = []
+
+    enrich_vulnerabilities(vulnerabilities, provider)
+
+
 def test_enrich_vulnerabilities_populates_intelligence():
 
     intelligence = VulnerabilityIntelligence(
@@ -456,10 +539,608 @@ def test_enrich_vulnerabilities_populates_intelligence():
 
     assert vulnerabilities[0].intelligence is not None
     assert (
-        vulnerabilities[0].intelligence.vulnerability_id 
+        vulnerabilities[0].intelligence.vulnerability_id
         == "CVE-2021-44228"
-
     )
-
     assert vulnerabilities[0].intelligence.description == "Log4Shell"
     assert vulnerabilities[0].intelligence.cwe == ["CWE-502"]
+
+
+# ---------------------------------------------------------------------------
+# OSVIntelligenceProvider
+# ---------------------------------------------------------------------------
+
+def test_osv_intelligence_provider_has_name():
+
+    provider = OSVIntelligenceProvider()
+
+    assert provider.name == "osv"
+
+
+def test_osv_intelligence_provider_normalizes_vulnerability_id():
+
+    class FakeClient:
+
+        def __init__(self):
+            self.received_id = None
+
+        def get(self, vulnerability_id):
+            self.received_id = vulnerability_id
+            return None
+
+    client = FakeClient()
+
+    provider = OSVIntelligenceProvider(
+        client=client
+    )
+
+    result = provider.get("cve-2026-1234")
+
+    assert result is None
+    assert client.received_id == "CVE-2026-1234"
+
+
+def test_osv_intelligence_provider_returns_none_when_not_found():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return None
+
+    provider = OSVIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    result = provider.get("CVE-2026-9999")
+
+    assert result is None
+
+
+def test_osv_intelligence_provider_converts_osv_record():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return {
+                "id": "CVE-2021-44228",
+                "summary": (
+                    "Apache Log4j2 remote code execution vulnerability."
+                ),
+                "details": (
+                    "A remote code execution vulnerability in Apache Log4j2."
+                ),
+                "published": "2021-12-10T10:15:00Z",
+                "modified": "2026-08-01T12:00:00Z",
+                "aliases": [
+                    "CVE-2021-44228",
+                ],
+                "references": [
+                    {
+                        "type": "ADVISORY",
+                        "url": "https://example.com/advisory",
+                    }
+                ],
+                "database_specific": {
+                    "cwe_ids": [
+                        "CWE-502",
+                    ],
+                },
+                "severity": [
+                    {
+                        "type": "CVSS_V3",
+                        "score": (
+                            "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/"
+                            "S:U/C:H/I:H/A:H"
+                        ),
+                    }
+                ],
+            }
+
+    provider = OSVIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    result = provider.get("CVE-2021-44228")
+
+    assert isinstance(result, VulnerabilityIntelligence)
+    assert result.vulnerability_id == "CVE-2021-44228"
+    assert result.aliases == [
+        "CVE-2021-44228"
+    ]
+    assert result.description == (
+        "A remote code execution vulnerability in Apache Log4j2."
+    )
+    assert result.cwe == ["CWE-502"]
+    assert result.published is not None
+    assert result.modified is not None
+    assert result.references == [
+        "https://example.com/advisory"
+    ]
+
+
+def test_osv_intelligence_provider_uses_summary_when_details_missing():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return {
+                "id": "CVE-2026-1234",
+                "summary": "Example OSV vulnerability.",
+                "published": "2026-01-15T12:00:00Z",
+                "modified": "2026-08-01T12:00:00Z",
+                "references": [],
+                "database_specific": {},
+            }
+
+    provider = OSVIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    result = provider.get("CVE-2026-1234")
+
+    assert isinstance(result, VulnerabilityIntelligence)
+    assert result.description == "Example OSV vulnerability."
+
+
+def test_osv_intelligence_provider_allows_missing_description():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return {
+                "id": "CVE-2026-1234",
+                "published": "2026-01-15T12:00:00Z",
+                "modified": "2026-08-01T12:00:00Z",
+                "references": [],
+                "database_specific": {},
+            }
+
+    provider = OSVIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    result = provider.get("CVE-2026-1234")
+
+    assert isinstance(result, VulnerabilityIntelligence)
+    assert result.description is None
+
+
+def test_osv_intelligence_provider_converts_cvss():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return {
+                "id": "CVE-2021-44228",
+                "summary": "Log4Shell",
+                "severity": [
+                    {
+                        "type": "CVSS_V3",
+                        "score": (
+                            "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/"
+                            "S:U/C:H/I:H/A:H"
+                        ),
+                        "base_score": 10.0,
+                    }
+                ],
+            }
+
+    provider = OSVIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    result = provider.get("CVE-2021-44228")
+
+    assert isinstance(result.cvss, CVSS)
+    assert result.cvss.version == "3.1"
+    assert result.cvss.vector == (
+        "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+    )
+    assert result.cvss.score == 10.0
+    assert result.cvss.severity == "critical"
+
+
+def test_osv_intelligence_provider_allows_missing_database_specific():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return {
+                "id": "CVE-2026-1234",
+                "summary": "Example OSV vulnerability.",
+            }
+
+    provider = OSVIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    result = provider.get("CVE-2026-1234")
+
+    assert isinstance(result, VulnerabilityIntelligence)
+    assert result.cwe is None
+
+
+def test_osv_intelligence_provider_skips_references_without_urls():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return {
+                "id": "CVE-2026-1234",
+                "summary": "Example OSV vulnerability.",
+                "references": [
+                    {
+                        "type": "PACKAGE",
+                    },
+                    {
+                        "type": "ADVISORY",
+                        "url": "https://example.com/advisory",
+                    },
+                    {
+                        "type": "WEB",
+                    },
+                ],
+            }
+
+    provider = OSVIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    result = provider.get("CVE-2026-1234")
+
+    assert result.references == [
+        "https://example.com/advisory"
+    ]
+
+
+# ---------------------------------------------------------------------------
+# OSVIntelligenceProvider - date handling
+# ---------------------------------------------------------------------------
+
+def test_osv_intelligence_provider_converts_published_and_modified_dates():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return {
+                "id": "CVE-2026-1234",
+                "summary": "Example OSV vulnerability.",
+                "published": "2026-01-15T12:00:00Z",
+                "modified": "2026-08-01T12:30:00Z",
+            }
+
+    provider = OSVIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    result = provider.get("CVE-2026-1234")
+
+    assert result.published == datetime.fromisoformat(
+        "2026-01-15T12:00:00+00:00"
+    )
+
+    assert result.modified == datetime.fromisoformat(
+        "2026-08-01T12:30:00+00:00"
+    )
+
+
+def test_osv_intelligence_provider_allows_missing_dates():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return {
+                "id": "CVE-2026-1234",
+                "summary": "Example OSV vulnerability.",
+            }
+
+    provider = OSVIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    result = provider.get("CVE-2026-1234")
+
+    assert isinstance(result, VulnerabilityIntelligence)
+    assert result.published is None
+    assert result.modified is None
+
+
+def test_osv_intelligence_provider_skips_malformed_dates():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return {
+                "id": "CVE-2026-1234",
+                "summary": "Example OSV vulnerability.",
+                "published": "not-a-date",
+                "modified": "2026-08-01T12:00:00Z",
+            }
+
+    provider = OSVIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    result = provider.get("CVE-2026-1234")
+
+    assert isinstance(result, VulnerabilityIntelligence)
+    assert result.published is None
+    assert result.modified == datetime.fromisoformat(
+        "2026-08-01T12:00:00+00:00"
+    )
+
+
+# ---------------------------------------------------------------------------
+# _convert_osv_cvss
+# ---------------------------------------------------------------------------
+
+def test_convert_osv_cvss_returns_none_when_missing():
+
+    result = _convert_osv_cvss(None)
+
+    assert result is None
+
+
+def test_convert_osv_cvss_returns_none_for_empty_list():
+
+    result = _convert_osv_cvss([])
+
+    assert result is None
+
+
+def test_convert_osv_cvss_converts_cvss_v3():
+
+    severity_data = [
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/"
+                "S:U/C:H/I:H/A:H"
+            ),
+            "base_score": 10.0,
+        }
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert isinstance(result, CVSS)
+    assert result.version == "3.1"
+    assert result.score == 10.0
+    assert result.vector == (
+        "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+    )
+    assert result.severity == "critical"
+
+
+def test_convert_osv_cvss_skips_non_cvss_v3():
+
+    severity_data = [
+        {
+            "type": "OTHER",
+            "score": "something",
+            "base_score": 10.0,
+        }
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert result is None
+
+
+def test_convert_osv_cvss_skips_missing_base_score():
+
+    severity_data = [
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/"
+                "S:U/C:H/I:H/A:H"
+            ),
+        }
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert result is None
+
+
+def test_convert_osv_cvss_maps_high_severity():
+
+    severity_data = [
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/"
+                "S:U/C:H/I:N/A:N"
+            ),
+            "base_score": 7.5,
+        }
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert result.score == 7.5
+    assert result.severity == "high"
+
+
+def test_convert_osv_cvss_maps_medium_severity():
+
+    severity_data = [
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/"
+                "S:U/C:L/I:N/A:N"
+            ),
+            "base_score": 5.0,
+        }
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert result.score == 5.0
+    assert result.severity == "medium"
+
+
+def test_convert_osv_cvss_maps_low_severity():
+
+    severity_data = [
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "CVSS:3.1/AV:L/AC:H/PR:N/UI:N/"
+                "S:U/C:L/I:N/A:N"
+            ),
+            "base_score": 2.0,
+        }
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert result.score == 2.0
+    assert result.severity == "low"
+
+
+def test_convert_osv_cvss_skips_invalid_cvss_v3_and_uses_next():
+
+    severity_data = [
+        {
+            "type": "CVSS_V3",
+            "score": None,
+            "base_score": None,
+        },
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/"
+                "S:U/C:H/I:H/A:H"
+            ),
+            "base_score": 10.0,
+        },
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert isinstance(result, CVSS)
+    assert result.score == 10.0
+    assert result.version == "3.1"
+
+
+def test_convert_osv_cvss_uses_first_valid_cvss_v3():
+
+    severity_data = [
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/"
+                "S:U/C:H/I:H/A:H"
+            ),
+            "base_score": 10.0,
+        },
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/"
+                "S:U/C:L/I:N/A:N"
+            ),
+            "base_score": 5.0,
+        },
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert result.score == 10.0
+    assert result.severity == "critical"
+
+
+def test_convert_osv_cvss_skips_malformed_vector():
+
+    severity_data = [
+        {
+            "type": "CVSS_V3",
+            "score": "not-a-cvss-vector",
+            "base_score": 7.5,
+        }
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert result is None
+
+
+def test_convert_osv_cvss_skips_missing_cvss_version():
+
+    severity_data = [
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "/AV:N/AC:L/PR:N/UI:N/"
+                "S:U/C:H/I:H/A:H"
+            ),
+            "base_score": 9.8,
+        }
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert result is None
+
+
+def test_convert_osv_cvss_skips_unsupported_cvss_version():
+
+    severity_data = [
+        {
+            "type": "CVSS_V3",
+            "score": "CVSS:2.0/AV:N/AC:L/Au:N/C:P/I:P/A:P",
+            "base_score": 7.5,
+        }
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert result is None
+
+
+def test_convert_osv_cvss_skips_invalid_base_score():
+
+    severity_data = [
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/"
+                "S:U/C:H/I:H/A:H"
+            ),
+            "base_score": "not-a-score",
+        }
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert result is None
+
+
+def test_convert_osv_cvss_skips_non_numeric_base_score():
+
+    severity_data = [
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/"
+                "S:U/C:H/I:H/A:H"
+            ),
+            "base_score": None,
+        },
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/"
+                "S:U/C:H/I:H/A:H"
+            ),
+            "base_score": "7.5",
+        },
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert result is not None
+    assert result.score == 7.5

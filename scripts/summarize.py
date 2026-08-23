@@ -39,6 +39,7 @@ from lib.policy import load_policy, evaluate
 from lib.intelligence import (
     enrich_vulnerabilities,
     RecordIntelligenceProvider,
+    OSVIntelligenceProvider,
 )
 from lib.security import (
     summarize,
@@ -53,102 +54,155 @@ from lib.scanner import (
     parse_scan,
 )
 
-parser = argparse.ArgumentParser(description="Summarize container security scan results")
 
-parser.add_argument("report", help="Path to scanner report")
-parser.add_argument(
-    "--scanner",
-    required=True,
-    help="Scanner name"
-)
-parser.add_argument(
-    "--policy",
-    default="config/security_policy.yml",
-    help="Path to security policy YAML"
-)
-parser.add_argument(
-    "--intelligence",
-    help="Path to vulnerability intelligence JSON"
-)
+def main():
+    parser = argparse.ArgumentParser(
+        description="Summarize container security scan results",
+    )
 
-args = parser.parse_args()
-registry = create_default_registry()
+    parser.add_argument(
+        "report",
+        help="Path to scanner report",
+    )
 
-# --intelligence is optional
-intelligence_provider = None
+    parser.add_argument(
+        "--scanner",
+        required=True,
+        help="Scanner name",
+    )
 
-if args.intelligence:
+    parser.add_argument(
+        "--policy",
+        default="config/security_policy.yml",
+        help="Path to security policy YAML",
+    )
+
+    parser.add_argument(
+        "--intelligence",
+        help="Path to vulnerability intelligence JSON",
+    )
+
+    parser.add_argument(
+        "--osv",
+        action="store_true",
+        help="Retrieve vulnerability intelligence from OSV",
+    )
+
+    args = parser.parse_args()
+    registry = create_default_registry()
+
+    # Intelligence is optionalcls
+
+    intelligence_provider = None
+
+    if args.intelligence and args.osv:
+        parser.error(
+            "--intelligence and --osv cannot be used together."
+        )
+
+    if args.intelligence:
+        try:
+            records = load_intelligence_records(
+                Path(args.intelligence)
+            )
+            intelligence_provider = RecordIntelligenceProvider(
+                records=records
+            )
+
+        except FileNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+
+    elif args.osv:
+        intelligence_provider = OSVIntelligenceProvider()
+
     try:
-        records = load_intelligence_records(
-            Path(args.intelligence)
-        )
-        intelligence_provider = RecordIntelligenceProvider(
-            records=records
+        report = load_scan_report(
+            registry,
+            args.scanner,
+            Path(args.report),
         )
 
-    except FileNotFoundError as exc:
-        print(str(exc), file=sys.stderr)
-        sys.exit(1)
+        vulnerabilities = parse_scan(
+            registry,
+            args.scanner,
+            report,
+        )
+
+        if intelligence_provider is not None:
+            enrich_vulnerabilities(
+                vulnerabilities,
+                intelligence_provider,
+            )
+
+    except FileNotFoundError:
+        print(
+            f"Report not found: {args.report}",
+            file=sys.stderr,
+        )
+        return 1
 
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
-        sys.exit(1)
+        return 1
 
-try:
-    report = load_scan_report(
-        registry,
-        args.scanner,
-        Path(args.report),
+    summary = summarize(
+        vulnerabilities=vulnerabilities
     )
 
-    vulnerabilities = parse_scan(
-        registry,
-        args.scanner,
-        report,
+    summary["weighted_risk"] = weighted_risk(summary)
+    summary["security_score"] = security_score(summary)
+    summary["grade"] = security_grade(summary["security_score"])
+    summary["risk_level"] = risk_level(summary["security_score"])
+
+    try:
+        policy = load_policy(args.policy)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    failures = evaluate(
+        summary,
+        policy,
     )
 
-    if intelligence_provider is not None:
-        enrich_vulnerabilities(
-            vulnerabilities,
-            intelligence_provider,
+    summary["policy_failures"] = failures
+    summary["policy_passed"] = not failures
+
+    if failures:
+        print(
+            "***SECURITY POLICY FAILED***\n",
+            file=sys.stderr,
         )
 
-except FileNotFoundError:
-    print(f"Report not found: {args.report}")
-    sys.exit(1)
+        for failure in failures:
+            print(
+                f"- {failure}",
+                file=sys.stderr,
+            )
 
-except ValueError as exc:
-    print(str(exc), file=sys.stderr)
-    sys.exit(1)
+    else:
+        print(
+            "***SECURITY POLICY PASSED***\n",
+            file=sys.stderr
+        )
 
-summary = summarize(vulnerabilities=vulnerabilities)
+    print(
+        json.dumps(
+            summary,
+            indent=4,
+        )
+    )
 
-summary["weighted_risk"] = weighted_risk(summary)
-summary["security_score"] = security_score(summary)
-summary["grade"] = security_grade(summary["security_score"])
-summary["risk_level"] = risk_level(summary["security_score"])
+    if failures:
+        return 1
 
-try:
-    policy = load_policy(args.policy)
-except ValueError as exc:
-    print(str(exc), file=sys.stderr)
-    sys.exit(1)
+    return 0
 
-failures = evaluate(summary, policy)
 
-summary["policy_failures"] = failures
-summary["policy_passed"] = not failures
-
-if failures:
-    print("***SECURITY POLICY FAILED***\n", file=sys.stderr)
-
-    for failure in failures:
-        print(f"- {failure}", file=sys.stderr)
-
-else:
-    print("***SECURITY POLICY PASSED***\n", file=sys.stderr)
-
-print(json.dumps(summary, indent=4))
-
-if failures:
-    sys.exit(1)
+if __name__ == "__main__":
+    sys.exit(main())

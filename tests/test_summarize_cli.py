@@ -2,12 +2,17 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+
 from lib.reporting import generate_report
 
 
 ROOT = Path(__file__).resolve().parent.parent
 SUMMARIZE_SCRIPT = ROOT / "scripts" / "summarize.py"
 
+
+# ---------------------------------------------------------------------------
+# Test helpers
+# ---------------------------------------------------------------------------
 
 def write_report(path, critical=0, high=0, medium=0):
     report = {
@@ -32,6 +37,10 @@ def write_report(path, critical=0, high=0, medium=0):
 
     path.write_text(json.dumps(report))
 
+
+# ---------------------------------------------------------------------------
+# Summarize - policy enforcement
+# ---------------------------------------------------------------------------
 
 def test_summarize_exits_zero_when_policy_passes(tmp_path):
     report_file = tmp_path / "report.json"
@@ -111,6 +120,10 @@ fail_on:
     assert "SECURITY POLICY FAILED" in result.stderr
     assert "Critical vulnerabilities exceed limit." in result.stderr
 
+
+# ---------------------------------------------------------------------------
+# Summarize - input validation and error handling
+# ---------------------------------------------------------------------------
 
 def test_summarize_fails_when_policy_file_is_missing(tmp_path):
     report_file = tmp_path / "report.json"
@@ -217,6 +230,10 @@ fail_on:
     assert "Invalid policy YAML" in result.stderr
 
 
+# ---------------------------------------------------------------------------
+# Summarize - policy results in summary
+# ---------------------------------------------------------------------------
+
 def test_summarize_includes_policy_result_when_policy_passes(tmp_path):
     report_file = tmp_path / "report.json"
     policy_file = tmp_path / "policy.yml"
@@ -310,8 +327,15 @@ fail_on:
     summary = json.loads(result.stdout)
 
     assert summary["policy_passed"] is False
-    assert "Critical vulnerabilities exceed limit." in summary["policy_failures"]
+    assert (
+        "Critical vulnerabilities exceed limit."
+        in summary["policy_failures"]
+    )
 
+
+# ---------------------------------------------------------------------------
+# Reporting - policy status
+# ---------------------------------------------------------------------------
 
 def test_generate_report_policy_status_comes_from_summary(tmp_path):
 
@@ -349,6 +373,10 @@ def test_generate_report_policy_status_comes_from_summary(tmp_path):
     assert "FAIL" in content
     assert "Test policy failure." in content
 
+
+# ---------------------------------------------------------------------------
+# Summarize - scanner selection
+# ---------------------------------------------------------------------------
 
 def test_summarize_accepts_scanner_argument(tmp_path):
 
@@ -394,7 +422,7 @@ def test_summarize_rejects_unknown_scanner(tmp_path):
             str(SUMMARIZE_SCRIPT),
             str(report_file),
             "--scanner",
-            "nessus"
+            "nessus",
         ],
         capture_output=True,
         text=True,
@@ -404,6 +432,10 @@ def test_summarize_rejects_unknown_scanner(tmp_path):
     assert result.returncode == 1
     assert "Unknown scanner: nessus" in result.stderr
 
+
+# ---------------------------------------------------------------------------
+# Summarize - intelligence enrichment
+# ---------------------------------------------------------------------------
 
 def test_summarize_enriches_vulnerabilities_with_intelligence(tmp_path):
     report_file = tmp_path / "report.json"
@@ -438,7 +470,10 @@ def test_summarize_enriches_vulnerabilities_with_intelligence(tmp_path):
                     "cvss": {
                         "version": "3.1",
                         "score": 8.1,
-                        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+                        "vector": (
+                            "CVSS:3.1/AV:N/AC:L/PR:N/"
+                            "UI:N/S:U/C:H/I:H/A:N"
+                        ),
                         "severity": "high",
                     },
                     "cwe": [
@@ -655,3 +690,30 @@ def test_summarize_fails_when_intelligence_file_is_missing(tmp_path):
     assert result.returncode == 1
     assert "Intelligence file not found" in result.stderr
     assert "Traceback" not in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# OSV intelligence
+# ---------------------------------------------------------------------------
+
+def test_summarize_accepts_osv_flag(tmp_path):
+
+    report_file = tmp_path / "report.json"
+
+    write_report(report_file)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SUMMARIZE_SCRIPT),
+            str(report_file),
+            "--scanner",
+            "grype",
+            "--osv",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode != 2
