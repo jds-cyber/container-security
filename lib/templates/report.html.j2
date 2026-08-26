@@ -363,65 +363,112 @@ td,th{
                     </table>
 
                     {% if vulnerability.intelligence %}
-                        <h4>Intelligence</h4>
 
-                        {% if vulnerability.intelligence.description %}
-                        <p>
-                            <strong>Description:</strong>
-                            {{ vulnerability.intelligence.description }}
-                        </p>
-                        {% endif %}
+                    <h4>Intelligence</h4>
 
-                        {% if vulnerability.intelligence.cvss %}
-                        <p>
-                            <strong>CVSS Score:</strong>
-                            {{ vulnerability.intelligence.cvss.score }}
-                        </p>
-
-                        {% if vulnerability.intelligence.cvss.vector %}
-                        <p>
-                            <strong>CVSS Vector:</strong>
-                            {{ vulnerability.intelligence.cvss.vector }}
-                        </p>
-                        {% endif %}
-                        {% endif %}
-
-                        {% if vulnerability.intelligence.cwe %}
-                        <p>
-                            <strong>CWE:</strong>
-                            {{ vulnerability.intelligence.cwe | join(", ") }}
-                        </p>
-                        {% endif %}
-
-                        {% if vulnerability.intelligence.aliases %}
-                        <p>
-                            <strong>Aliases:</strong>
-                            {{ vulnerability.intelligence.aliases | join(", ") }}
-                        </p>
-                        {% endif %}
-
-                        {% if vulnerability.intelligence.references %}
-                        <p>
-                            <strong>References:</strong>
-                        </p>
-                        <ul>
-                            {% for reference in vulnerability.intelligence.references %}
-                                <li>
-                                    <a href="{{ reference }}" target="_blank">
-                                        {{ reference }}
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                        {% endif %}
-
-                    {% else %}
-                        <p>
-                            <strong>Intelligence:</strong>
-                            No vulnerability intelligence available.
-                        </p>
+                    {% if vulnerability.intelligence.description %}
+                    <p>
+                        <strong>Description:</strong>
+                        {{ vulnerability.intelligence.description }}
+                    </p>
                     {% endif %}
 
+                    {% if vulnerability.intelligence.cvss %}
+                    <table>
+                        <tr>
+                            <th>CVSS Version</th>
+                            <td>{{ vulnerability.intelligence.cvss.version }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>CVSS Score</th>
+                            <td>{{ vulnerability.intelligence.cvss.score }}</td>
+                        </tr>
+
+                        {% if vulnerability.intelligence.cvss.severity %}
+                        <tr>
+                            <th>CVSS Severity</th>
+                            <td>{{ vulnerability.intelligence.cvss.severity }}</td>
+                        </tr>
+                        {% endif %}
+
+                        {% if vulnerability.intelligence.cvss.vector %}
+                        <tr>
+                            <th>CVSS Vector</th>
+                            <td>{{ vulnerability.intelligence.cvss.vector }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                    {% endif %}
+
+                    {% if vulnerability.intelligence.cwe %}
+                    <p>
+                        <strong>CWE:</strong>
+                        {{ vulnerability.intelligence.cwe | join(", ") }}
+                    </p>
+                    {% endif %}
+
+                    {% if vulnerability.intelligence.published %}
+                    <p>
+                        <strong>Published:</strong>
+                        {{ vulnerability.intelligence.published }}
+                    </p>
+                    {% endif %}
+
+                    {% if vulnerability.intelligence.modified %}
+                    <p>
+                        <strong>Last Modified:</strong>
+                        {{ vulnerability.intelligence.modified }}
+                    </p>
+                    {% endif %}
+
+                    {% if vulnerability.intelligence.aliases %}
+                    <p>
+                        <strong>Aliases:</strong>
+                        {{ vulnerability.intelligence.aliases | join(", ") }}
+                    </p>
+                    {% endif %}
+
+                    {% if vulnerability.intelligence.affected_packages %}
+                    <h4>Affected Packages</h4>
+
+                    <table>
+                        <tr>
+                            <th>Ecosystem</th>
+                            <th>Package</th>
+                        </tr>
+
+                        {% for package in vulnerability.intelligence.affected_packages %}
+                        <tr>
+                            <td>{{ package.ecosystem }}</td>
+                            <td>{{ package.name }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                    {% endif %}
+
+                    {% if vulnerability.intelligence.references %}
+                    <p>
+                        <strong>References:</strong>
+                    </p>
+
+                    <ul>
+                        {% for reference in vulnerability.intelligence.references %}
+                        <li>
+                            <a href="{{ reference }}" target="_blank" rel="noopener noreferrer">
+                                {{ reference }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+
+                    {% else %}
+                    <p>
+                        <strong>Intelligence:</strong>
+                        No vulnerability intelligence available.
+                    </p>
+                    {% endif %}
                 </div>
             {% endfor %}
         {% else %}

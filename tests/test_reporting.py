@@ -365,6 +365,89 @@ def test_generate_report_displays_intelligence_summary(tmp_path):
     assert "CWE Available" in content
 
 
+def test_generate_report_displays_detailed_vulnerability_intelligence(
+    tmp_path,
+):
+    summary = {
+        "findings": 1,
+        "unique_vulnerabilities": 1,
+        "critical": 1,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "negligible": 0,
+        "unknown": 0,
+        "weighted_risk": 10,
+        "security_score": 90,
+        "grade": "A",
+        "risk_level": "LOW",
+        "policy_passed": True,
+        "policy_failures": [],
+        "intelligence_summary": {
+            "total": 1,
+            "enriched": 1,
+            "unenriched": 0,
+            "cvss_available": 1,
+            "cwe_available": 1,
+        },
+        "vulnerabilities": [
+            {
+                "id": "CVE-2026-1234",
+                "severity": "critical",
+                "package": "example",
+                "installed_version": "1.0.0",
+                "fixed_version": "1.0.1",
+                "intelligence": {
+                    "description": "Example vulnerability.",
+                    "cvss": {
+                        "version": "3.1",
+                        "score": 9.8,
+                        "severity": "critical",
+                        "vector": (
+                            "CVSS:3.1/"
+                            "AV:N/AC:L/PR:N/UI:N/"
+                            "S:U/C:H/I:H/A:H"
+                        ),
+                    },
+                    "cwe": ["CWE-79"],
+                    "published": "2026-01-15T12:30:00",
+                    "modified": "2026-02-20T14:45:00",
+                    "aliases": ["GHSA-abcd-1234-wxyz"],
+                    "affected_packages": [
+                        {
+                            "ecosystem": "PyPI",
+                            "name": "example",
+                        }
+                    ],
+                    "references": [
+                        "https://example.com/advisory",
+                    ],
+                },
+            }
+        ],
+    }
+
+    output = tmp_path / "report.html"
+
+    generate_report(
+        summary,
+        output,
+        image_name="test-image",
+        history_dir=tmp_path / "history",
+    )
+
+    content = output.read_text()
+
+    assert "CVSS Version" in content
+    assert "CVSS Severity" in content
+    assert "Published" in content
+    assert "Last Modified" in content
+    assert "Affected Packages" in content
+    assert "PyPI" in content
+    assert "example" in content
+    assert "GHSA-abcd-1234-wxyz" in content
+
+
 # ============================================================
 # security_comparison
 # ============================================================
