@@ -244,10 +244,13 @@ def _convert_osv_cvss(severity_data):
     Convert an OSV CVSS severity record into a CVSS object.
     """
 
-    if not severity_data:
+    if not isinstance(severity_data, list):
         return None
 
     for severity in severity_data:
+        if not isinstance(severity, dict):
+            continue
+
         if severity.get("type") != "CVSS_V3":
             continue
 

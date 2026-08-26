@@ -881,11 +881,44 @@ def test_convert_osv_cvss_returns_none_when_missing():
     assert result is None
 
 
+def test_convert_osv_cvss_returns_none_for_non_list():
+
+    result = _convert_osv_cvss(
+        {"type": "CVSS_V3"}
+    )
+
+    assert result is None
+
+
 def test_convert_osv_cvss_returns_none_for_empty_list():
 
     result = _convert_osv_cvss([])
 
     assert result is None
+
+
+def test_convert_osv_cvss_skips_non_dictionary_entries():
+
+    severity_data = [
+        "invalid",
+        None,
+        123,
+        {
+            "type": "CVSS_V3",
+            "score": (
+                "CVSS:3.1/"
+                "AV:N/AC:L/PR:N/UI:N/"
+                "S:U/C:H/I:H/A:H"
+            ),
+            "base_score": 9.8,
+        },
+    ]
+
+    result = _convert_osv_cvss(severity_data)
+
+    assert isinstance(result, CVSS)
+    assert result.version == "3.1"
+    assert result.score == 9.8
 
 
 def test_convert_osv_cvss_converts_cvss_v3():
