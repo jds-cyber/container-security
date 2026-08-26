@@ -147,6 +147,17 @@ def generate_report(
 
     generated=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    summary.setdefault(
+        "intelligence_summary",
+        {
+            "total": 0,
+            "enriched": 0,
+            "unenriched": 0,
+            "cvss_available": 0,
+            "cwe_available": 0,
+        },
+    )
+
     html = template.render(
         summary=summary,
         image=image_name,

@@ -21,7 +21,45 @@ def empty_summary():
         "security_score": 0,
         "grade": "",
         "risk_level": "",
+        "intelligence_summary": {
+            "total": 0,
+            "enriched": 0,
+            "unenriched": 0,
+            "cvss_available": 0,
+            "cwe_available": 0,
+        },
     }
+
+
+def intelligence_summary(vulnerabilities):
+    """
+    Summarize vulnerability intelligence coverage.
+    """
+
+    summary = {
+        "total": len(vulnerabilities),
+        "enriched": 0,
+        "unenriched": 0,
+        "cvss_available": 0,
+        "cwe_available": 0,
+    }
+
+    for vulnerability in vulnerabilities:
+        intelligence = vulnerability.intelligence
+
+        if intelligence is None:
+            summary["unenriched"] += 1
+            continue
+
+        summary["enriched"] += 1
+
+        if intelligence.cvss is not None:
+            summary["cvss_available"] += 1
+
+        if intelligence.cwe:
+            summary["cwe_available"] += 1
+
+    return summary
 
 
 def summarize(vulnerabilities):
@@ -62,6 +100,10 @@ def summarize(vulnerabilities):
 
     summary["unique_vulnerabilities"] = len(
         summary["vulnerability_ids"]
+    )
+
+    summary["intelligence_summary"] = intelligence_summary(
+        vulnerabilities
     )
 
     return summary

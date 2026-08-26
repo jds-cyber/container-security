@@ -74,7 +74,20 @@ class RecordIntelligenceProvider(IntelligenceProvider):
         return "record"
 
     def __init__(self, records=None):
-        self.records = records or {}
+        self.records = {}
+
+        if records is not None:
+            if not isinstance(records, dict):
+                raise ValueError(
+                    "Intelligence records must be a dictionary."
+                )
+
+            for vulnerability_id, record in records.items():
+                normalized_id = _validate_vulnerability_id(
+                    vulnerability_id
+                )
+
+                self.records[normalized_id] = record
 
     def get(self, vulnerability_id):
         vulnerability_id = _validate_vulnerability_id(

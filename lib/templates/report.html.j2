@@ -295,6 +295,37 @@ td,th{
     </div>
 
     <div class="card">
+        <h2>Vulnerability Intelligence Coverage</h2>
+
+        <table>
+            <tr>
+                <th>Metric</th>
+                <th>Count</th>
+            </tr>
+            <tr>
+                <td>Total Vulnerabilities</td>
+                <td>{{ summary.intelligence_summary.total }}</td>
+            </tr>
+            <tr>
+                <td>Enriched</td>
+                <td>{{ summary.intelligence_summary.enriched }}</td>
+            </tr>
+            <tr>
+                <td>Unenriched</td>
+                <td>{{ summary.intelligence_summary.unenriched }}</td>
+            </tr>
+            <tr>
+                <td>CVSS Available</td>
+                <td>{{ summary.intelligence_summary.cvss_available }}</td>
+            </tr>
+            <tr>
+                <td>CWE Available</td>
+                <td>{{ summary.intelligence_summary.cwe_available }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="card">
         <h2>Vulnerability Intelligence</h2>
 
         {% if summary.vulnerabilities %}

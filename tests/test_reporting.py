@@ -319,6 +319,52 @@ def test_generate_report_handles_missing_vulnerability_intelligence(
     )
 
 
+def test_generate_report_displays_intelligence_summary(tmp_path):
+
+    summary = {
+        "findings": 2,
+        "unique_vulnerabilities": 2,
+        "critical": 0,
+        "high": 1,
+        "medium": 1,
+        "low": 0,
+        "negligible": 0,
+        "unknown": 0,
+        "weighted_risk": 7,
+        "security_score": 93,
+        "grade": "A",
+        "risk_level": "LOW",
+        "policy_passed": True,
+        "policy_failures": [],
+        "intelligence_summary": {
+            "total": 2,
+            "enriched": 1,
+            "unenriched": 1,
+            "cvss_available": 1,
+            "cwe_available": 1,
+        },
+        "vulnerabilities": [],
+    }
+
+    output = tmp_path / "report.html"
+
+    generate_report(
+        summary,
+        output,
+        image_name="test-image",
+        history_dir=tmp_path / "history",
+    )
+
+    content = output.read_text()
+
+    assert "Vulnerability Intelligence Coverage" in content
+    assert "Total Vulnerabilities" in content
+    assert "Enriched" in content
+    assert "Unenriched" in content
+    assert "CVSS Available" in content
+    assert "CWE Available" in content
+
+
 # ============================================================
 # security_comparison
 # ============================================================
