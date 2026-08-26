@@ -295,6 +295,110 @@ td,th{
     </div>
 
     <div class="card">
+        <h2>Vulnerability Intelligence</h2>
+
+        {% if summary.vulnerabilities %}
+            {% for vulnerability in summary.vulnerabilities %}
+                <div style="margin-bottom: 30px;">
+
+                    <h3>{{ vulnerability.id }}</h3>
+
+                    <table>
+                        <tr>
+                            <th>Severity</th>
+                            <td>{{ vulnerability.severity }}</td>
+                        </tr>
+
+                        {% if vulnerability.package %}
+                        <tr>
+                            <th>Package</th>
+                            <td>{{ vulnerability.package }}</td>
+                        </tr>
+                        {% endif %}
+
+                        {% if vulnerability.installed_version %}
+                        <tr>
+                            <th>Installed Version</th>
+                            <td>{{ vulnerability.installed_version }}</td>
+                        </tr>
+                        {% endif %}
+
+                        {% if vulnerability.fixed_version %}
+                        <tr>
+                            <th>Fixed Version</th>
+                            <td>{{ vulnerability.fixed_version }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+
+                    {% if vulnerability.intelligence %}
+                        <h4>Intelligence</h4>
+
+                        {% if vulnerability.intelligence.description %}
+                        <p>
+                            <strong>Description:</strong>
+                            {{ vulnerability.intelligence.description }}
+                        </p>
+                        {% endif %}
+
+                        {% if vulnerability.intelligence.cvss %}
+                        <p>
+                            <strong>CVSS Score:</strong>
+                            {{ vulnerability.intelligence.cvss.score }}
+                        </p>
+
+                        {% if vulnerability.intelligence.cvss.vector %}
+                        <p>
+                            <strong>CVSS Vector:</strong>
+                            {{ vulnerability.intelligence.cvss.vector }}
+                        </p>
+                        {% endif %}
+                        {% endif %}
+
+                        {% if vulnerability.intelligence.cwe %}
+                        <p>
+                            <strong>CWE:</strong>
+                            {{ vulnerability.intelligence.cwe | join(", ") }}
+                        </p>
+                        {% endif %}
+
+                        {% if vulnerability.intelligence.aliases %}
+                        <p>
+                            <strong>Aliases:</strong>
+                            {{ vulnerability.intelligence.aliases | join(", ") }}
+                        </p>
+                        {% endif %}
+
+                        {% if vulnerability.intelligence.references %}
+                        <p>
+                            <strong>References:</strong>
+                        </p>
+                        <ul>
+                            {% for reference in vulnerability.intelligence.references %}
+                                <li>
+                                    <a href="{{ reference }}" target="_blank">
+                                        {{ reference }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+
+                    {% else %}
+                        <p>
+                            <strong>Intelligence:</strong>
+                            No vulnerability intelligence available.
+                        </p>
+                    {% endif %}
+
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No vulnerabilities detected.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
         <h2>Executive Summary</h2>
         <p>
             This container image contains
