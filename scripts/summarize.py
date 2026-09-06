@@ -1,11 +1,31 @@
 #!/usr/bin/env python3
+import argparse
 import json
 import sys
-import argparse
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+
+from lib.intelligence import (
+    enrich_vulnerabilities,
+    RecordIntelligenceProvider,
+    OSVIntelligenceProvider,
+    EPSSIntelligenceProvider,
+)
+from lib.policy import load_policy, evaluate
+from lib.security import (
+    summarize,
+    weighted_risk,
+    security_score,
+    security_grade,
+    risk_level,
+)
+from lib.scanner import (
+    create_default_registry,
+    load_scan_report,
+    parse_scan,
+)
 
 
 def load_intelligence_records(path):
@@ -33,26 +53,6 @@ def load_intelligence_records(path):
         )
 
     return records
-
-
-from lib.policy import load_policy, evaluate
-from lib.intelligence import (
-    enrich_vulnerabilities,
-    RecordIntelligenceProvider,
-    OSVIntelligenceProvider,
-)
-from lib.security import (
-    summarize,
-    weighted_risk,
-    security_score,
-    security_grade,
-    risk_level,
-)
-from lib.scanner import (
-    create_default_registry,
-    load_scan_report,
-    parse_scan,
-)
 
 
 def main():
@@ -88,16 +88,27 @@ def main():
         help="Retrieve vulnerability intelligence from OSV",
     )
 
+    parser.add_argument(
+        "--epss",
+        action="store_true",
+        help="Retrieve vulnerability intelligence from EPSS",
+    )
+
     args = parser.parse_args()
     registry = create_default_registry()
 
-    # Intelligence is optionalcls
+    # Intelligence is optional
 
     intelligence_provider = None
 
-    if args.intelligence and args.osv:
+    if sum([
+        bool(args.intelligence),
+        args.osv,
+        args.epss,
+    ]) > 1:
         parser.error(
-            "--intelligence and --osv cannot be used together."
+            "--intelligence, --osv, and --epss "
+            "cannot be used together."
         )
 
     if args.intelligence:
@@ -119,6 +130,9 @@ def main():
 
     elif args.osv:
         intelligence_provider = OSVIntelligenceProvider()
+
+    elif args.epss:
+        intelligence_provider = EPSSIntelligenceProvider()
 
     try:
         report = load_scan_report(

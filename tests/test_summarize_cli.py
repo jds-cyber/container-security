@@ -717,3 +717,30 @@ def test_summarize_accepts_osv_flag(tmp_path):
     )
 
     assert result.returncode != 2
+
+
+# ---------------------------------------------------------------------------
+# EPSS intelligence
+# ---------------------------------------------------------------------------
+
+def test_summarize_accepts_epss_flag(tmp_path):
+
+    report_file = tmp_path / "report.json"
+
+    write_report(report_file)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SUMMARIZE_SCRIPT),
+            str(report_file),
+            "--scanner",
+            "grype",
+            "--epss",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode != 2

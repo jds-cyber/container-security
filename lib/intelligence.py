@@ -3,10 +3,12 @@ from datetime import datetime
 from lib.vulnerability import (
     VulnerabilityIntelligence,
     CVSS,
+    EPSS,
     AffectedPackage,
     _validate_vulnerability_id,
 )
 from lib.osv import OSVClient
+from lib.epss import EPSSClient
 
 
 class IntelligenceProvider(ABC):
@@ -143,6 +145,46 @@ class RecordIntelligenceProvider(IntelligenceProvider):
                     "Invalid intelligence record CVSS data."
                 ) from exc
 
+        # EPSS deserialization
+        epss_data = record.get("epss")
+        epss = None
+
+        if epss_data is not None:
+            if not isinstance(epss_data, dict):
+                raise ValueError(
+                    "Intelligence record EPSS must be a dictionary."
+                )
+
+            epss_date_data = epss_data.get("date")
+            epss_date = None
+
+            if epss_date_data is not None:
+                if not isinstance(epss_date_data, str):
+                    raise ValueError(
+                        "Intelligence record EPSS date must be an ISO "
+                        "formatted datetime string."
+                    )
+
+                try:
+                    epss_date = datetime.fromisoformat(
+                        epss_date_data
+                    )
+                except ValueError as exc:
+                    raise ValueError(
+                        "Invalid intelligence record EPSS date."
+                    ) from exc
+
+            try:
+                epss = EPSS(
+                    score=epss_data["score"],
+                    percentile=epss_data["percentile"],
+                    date=epss_date,
+                )
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ValueError(
+                    "Invalid intelligence record EPSS data."
+                ) from exc
+
         # Published deserialization
         published_data = record.get("published")
         published = None
@@ -223,6 +265,7 @@ class RecordIntelligenceProvider(IntelligenceProvider):
                 vulnerability_id=record_vulnerability_id,
                 description=record.get("description"),
                 cvss=cvss,
+                epss=epss,
                 cwe=record.get("cwe"),
                 published=published,
                 modified=modified,
@@ -364,6 +407,76 @@ class OSVIntelligenceProvider(IntelligenceProvider):
                 if reference.get("url")
             ],
             aliases=record.get("aliases"),
+        )
+
+        self._cache[vulnerability_id] = intelligence
+
+        return intelligence
+
+
+class EPSSIntelligenceProvider(IntelligenceProvider):
+    """
+    Intelligence provider backed by the FIRST EPSS API.
+    """
+
+    @property
+    def name(self):
+        return "epss"
+
+    def __init__(self, client=None):
+        self.client = client or EPSSClient()
+        self._cache = {}
+
+    def get(self, vulnerability_id):
+        vulnerability_id = _validate_vulnerability_id(vulnerability_id)
+
+        if vulnerability_id in self._cache:
+            return self._cache[vulnerability_id]
+
+        record = self.client.get(vulnerability_id)
+
+        if record is None:
+            self._cache[vulnerability_id] = None
+            return None
+
+        if not isinstance(record, dict):
+            raise ValueError("Invalid EPSS record.")
+
+        if record.get("cve") != vulnerability_id:
+            raise ValueError(
+                "EPSS record vulnerability ID does not match request."
+            )
+
+        try:
+            score = float(record["epss"])
+            percentile = float(record["percentile"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("Invalid EPSS score data.") from exc
+
+        date_data = record.get("date")
+        date = None
+
+        if date_data is not None:
+            if not isinstance(date_data, str):
+                raise ValueError("EPSS date must be a date string.")
+
+            try:
+                date = datetime.strptime(date_data, "%Y-%m-%d")
+            except ValueError as exc:
+                raise ValueError("Invalid EPSS date.") from exc
+
+        try:
+            epss = EPSS(
+                score=score,
+                percentile=percentile,
+                date=date,
+            )
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Invalid EPSS data.") from exc
+
+        intelligence = VulnerabilityIntelligence(
+            vulnerability_id=vulnerability_id,
+            epss=epss,
         )
 
         self._cache[vulnerability_id] = intelligence

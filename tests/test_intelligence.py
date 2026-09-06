@@ -11,6 +11,7 @@ from lib.intelligence import (
     StaticIntelligenceProvider,
     RecordIntelligenceProvider,
     OSVIntelligenceProvider,
+    EPSSIntelligenceProvider,
     enrich_vulnerabilities,
     _convert_osv_cvss,
 )
@@ -868,6 +869,197 @@ def test_osv_intelligence_provider_skips_malformed_dates():
     assert result.modified == datetime.fromisoformat(
         "2026-08-01T12:00:00+00:00"
     )
+
+
+# ---------------------------------------------------------------------------
+# EPSSIntelligenceProvider
+# ---------------------------------------------------------------------------
+
+def test_epss_intelligence_provider_has_name():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return None
+
+    provider = EPSSIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    assert provider.name == "epss"
+
+
+def test_epss_intelligence_provider_normalizes_vulnerability_id():
+
+    class FakeClient:
+
+        def __init__(self):
+            self.received_id = None
+
+        def get(self, vulnerability_id):
+            self.received_id = vulnerability_id
+            return None
+
+    client = FakeClient()
+
+    provider = EPSSIntelligenceProvider(
+        client=client
+    )
+
+    result = provider.get("cve-2026-1234")
+
+    assert result is None
+    assert client.received_id == "CVE-2026-1234"
+
+
+def test_epss_intelligence_provider_returns_none_when_not_found():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return None
+
+    provider = EPSSIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    result = provider.get("CVE-2026-1234")
+
+    assert result is None
+
+
+def test_epss_intelligence_provider_converts_epss_record():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return {
+                "cve": "CVE-2026-1234",
+                "epss": "0.972240000",
+                "percentile": "1.000000000",
+                "date": "2026-09-06",
+            }
+
+    provider = EPSSIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    result = provider.get("CVE-2026-1234")
+
+    assert isinstance(result, VulnerabilityIntelligence)
+    assert result.vulnerability_id == "CVE-2026-1234"
+    assert result.description is None
+    assert result.cvss is None
+    assert result.cwe is None
+    assert result.epss is not None
+    assert result.epss.score == 0.97224
+    assert result.epss.percentile == 1.0
+    assert result.epss.date == datetime(2026, 9, 6, 0, 0, 0)
+
+
+def test_epss_intelligence_provider_caches_result():
+
+    class FakeClient:
+
+        def __init__(self):
+            self.calls = []
+
+        def get(self, vulnerability_id):
+            self.calls.append(vulnerability_id)
+
+            return {
+                "cve": vulnerability_id,
+                "epss": "0.5",
+                "percentile": "0.75",
+                "date": "2026-09-06",
+            }
+
+    client = FakeClient()
+
+    provider = EPSSIntelligenceProvider(
+        client=client
+    )
+
+    first = provider.get("CVE-2026-1234")
+    second = provider.get("CVE-2026-1234")
+
+    assert first is second
+    assert client.calls == [
+        "CVE-2026-1234"
+    ]
+
+
+def test_epss_intelligence_provider_caches_missing_result():
+
+    class FakeClient:
+
+        def __init__(self):
+            self.calls = []
+
+        def get(self, vulnerability_id):
+            self.calls.append(vulnerability_id)
+            return None
+
+    client = FakeClient()
+
+    provider = EPSSIntelligenceProvider(
+        client=client
+    )
+
+    first = provider.get("CVE-2026-1234")
+    second = provider.get("CVE-2026-1234")
+
+    assert first is None
+    assert second is None
+    assert client.calls == [
+        "CVE-2026-1234"
+    ]
+
+
+def test_epss_intelligence_provider_rejects_invalid_score():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return {
+                "cve": "CVE-2026-1234",
+                "epss": "not-a-score",
+                "percentile": "0.75",
+                "date": "2026-09-06",
+            }
+
+    provider = EPSSIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid EPSS score data"
+    ):
+        provider.get("CVE-2026-1234")
+
+
+def test_epss_intelligence_provider_rejects_invalid_date():
+
+    class FakeClient:
+
+        def get(self, vulnerability_id):
+            return {
+                "cve": "CVE-2026-1234",
+                "epss": "0.5",
+                "percentile": "0.75",
+                "date": "not-a-date",
+            }
+
+    provider = EPSSIntelligenceProvider(
+        client=FakeClient()
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid EPSS date"
+    ):
+        provider.get("CVE-2026-1234")
 
 
 # ---------------------------------------------------------------------------
