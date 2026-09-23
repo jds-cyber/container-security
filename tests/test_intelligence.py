@@ -1123,6 +1123,43 @@ def test_osv_intelligence_provider_cache_is_not_mutated_by_result_changes():
         "CVE-2026-1234",
     ]
 
+
+def test_osv_intelligence_provider_cache_is_protected_from_list_mutation():
+    class FakeOSVClient:
+        def __init__(self):
+            self.calls = []
+
+        def get(self, vulnerability_id):
+            self.calls.append(vulnerability_id)
+
+            return {
+                "details": "Original description",
+                "severity": [],
+                "database_specific": {
+                    "cwe_ids": ["CWE-79"],
+                },
+                "references": [
+                    {"url": "https://example.com/advisory"},
+                ],
+                "aliases": ["GHSA-1234"],
+            }
+
+    client = FakeOSVClient()
+    provider = OSVIntelligenceProvider(client=client)
+
+    first = provider.get("CVE-2026-1234")
+
+    first.cwe.append("CWE-89")
+    first.references.append("https://example.com/second")
+    first.aliases.append("GHSA-5678")
+
+    second = provider.get("CVE-2026-1234")
+
+    assert second.cwe == ["CWE-79"]
+    assert second.references == ["https://example.com/advisory"]
+    assert second.aliases == ["GHSA-1234"]
+    assert client.calls == ["CVE-2026-1234"]
+
 # ---------------------------------------------------------------------------
 # EPSSIntelligenceProvider
 # ---------------------------------------------------------------------------
