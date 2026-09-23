@@ -1054,6 +1054,41 @@ def test_osv_intelligence_provider_caches_missing_result():
         "CVE-2026-1234",
     ]
 
+
+def test_osv_intelligence_provider_keeps_cache_entries_separate():
+    class FakeOSVClient:
+
+        def __init__(self):
+            self.calls = []
+
+        def get(self, vulnerability_id):
+            self.calls.append(vulnerability_id)
+
+            return {
+                "details": vulnerability_id,
+                "severity": [],
+                "references": [],
+                "aliases": [],
+            }
+
+    client = FakeOSVClient()
+    provider = OSVIntelligenceProvider(client=client)
+
+    first = provider.get("CVE-2026-1234")
+    second = provider.get("CVE-2026-5678")
+    first_again = provider.get("CVE-2026-1234")
+
+    assert first is first_again
+    assert first is not second
+
+    assert first.description == "CVE-2026-1234"
+    assert second.description == "CVE-2026-5678"
+
+    assert client.calls == [
+        "CVE-2026-1234",
+        "CVE-2026-5678",
+    ]
+
 # ---------------------------------------------------------------------------
 # EPSSIntelligenceProvider
 # ---------------------------------------------------------------------------
@@ -1290,6 +1325,41 @@ def test_epss_intelligence_provider_caches_missing_result():
     assert second is None
     assert client.calls == [
         "CVE-2026-1234",
+    ]
+
+
+def test_epss_intelligence_provider_keeps_cache_entries_separate():
+    class FakeEPSSClient:
+
+        def __init__(self):
+            self.calls = []
+
+        def get(self, vulnerability_id):
+            self.calls.append(vulnerability_id)
+
+            return {
+                "cve": vulnerability_id,
+                "epss": "0.72",
+                "percentile": "0.91",
+                "date": "2026-09-01",
+            }
+
+    client = FakeEPSSClient()
+    provider = EPSSIntelligenceProvider(client=client)
+
+    first = provider.get("CVE-2026-1234")
+    second = provider.get("CVE-2026-5678")
+    first_again = provider.get("CVE-2026-1234")
+
+    assert first is first_again
+    assert first is not second
+
+    assert first.vulnerability_id == "CVE-2026-1234"
+    assert second.vulnerability_id == "CVE-2026-5678"
+
+    assert client.calls == [
+        "CVE-2026-1234",
+        "CVE-2026-5678",
     ]
 
 # ---------------------------------------------------------------------------
