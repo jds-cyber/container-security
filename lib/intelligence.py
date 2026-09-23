@@ -491,7 +491,7 @@ class EPSSIntelligenceProvider(IntelligenceProvider):
         return deepcopy(intelligence)
 
 
-def enrich_vulnerabilities(vulnerabilities, providers, strict=True):
+def enrich_vulnerabilities(vulnerabilities, providers, strict=True, errors=None):
     if not isinstance(providers, (list, tuple)):
         providers = [providers]
 
@@ -516,5 +516,8 @@ def enrich_vulnerabilities(vulnerabilities, providers, strict=True):
 
                 if strict:
                     raise error from exc
+
+                if errors is not None:
+                    errors.append(error)
 
     return vulnerabilities

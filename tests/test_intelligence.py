@@ -745,6 +745,88 @@ def test_enrich_vulnerabilities_accepts_strict_parameter():
         )
 
 
+def test_enrich_vulnerabilities_non_strict_continues_after_failure():
+    class FailingProvider(IntelligenceProvider):
+        @property
+        def name(self):
+            return "failing"
+
+        def get(self, vulnerability_id):
+            raise ValueError("backend unavailable")
+
+    class WorkingProvider(IntelligenceProvider):
+        @property
+        def name(self):
+            return "working"
+
+        def get(self, vulnerability_id):
+            return VulnerabilityIntelligence(
+                vulnerability_id=vulnerability_id,
+                description="Recovered intelligence",
+            )
+
+    vulnerability = Vulnerability("CVE-2026-1234")
+    errors = []
+
+    result = enrich_vulnerabilities(
+        [vulnerability],
+        [FailingProvider(), WorkingProvider()],
+        strict=False,
+        errors=errors,
+    )
+
+    assert result == [vulnerability]
+    assert vulnerability.intelligence.description == "Recovered intelligence"
+
+    assert len(errors) == 1
+    assert isinstance(errors[0], RuntimeError)
+    assert str(errors[0]) == (
+        "Intelligence provider 'failing' failed for "
+        "CVE-2026-1234: backend unavailable"
+    )
+
+
+def test_enrich_vulnerabilities_non_strict_continues_across_vulnerabilities():
+    class FailingProvider(IntelligenceProvider):
+        @property
+        def name(self):
+            return "failing"
+
+        def get(self, vulnerability_id):
+            raise ValueError("backend unavailable")
+
+    class WorkingProvider(IntelligenceProvider):
+        @property
+        def name(self):
+            return "working"
+
+        def get(self, vulnerability_id):
+            return VulnerabilityIntelligence(
+                vulnerability_id=vulnerability_id,
+                description=vulnerability_id,
+            )
+
+    vulnerabilities = [
+        Vulnerability("CVE-2026-1234"),
+        Vulnerability("CVE-2026-5678"),
+    ]
+    errors = []
+
+    result = enrich_vulnerabilities(
+        vulnerabilities,
+        [FailingProvider(), WorkingProvider()],
+        strict=False,
+        errors=errors,
+    )
+
+    assert result == vulnerabilities
+
+    assert vulnerabilities[0].intelligence.description == "CVE-2026-1234"
+    assert vulnerabilities[1].intelligence.description == "CVE-2026-5678"
+
+    assert len(errors) == 2
+
+
 # ---------------------------------------------------------------------------
 # OSVIntelligenceProvider
 # ---------------------------------------------------------------------------
