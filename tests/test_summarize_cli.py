@@ -744,3 +744,61 @@ def test_summarize_accepts_epss_flag(tmp_path):
     )
 
     assert result.returncode != 2
+
+
+def test_summarize_rejects_intelligence_with_osv(tmp_path):
+
+    report_file = tmp_path / "report.json"
+
+    write_report(report_file)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SUMMARIZE_SCRIPT),
+            str(report_file),
+            "--scanner",
+            "grype",
+            "--intelligence",
+            str(tmp_path / "intelligence.json"),
+            "--osv",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 2
+    assert (
+        "--intelligence cannot be combined with "
+        "--osv or --epss."
+    ) in result.stderr
+
+
+def test_summarize_rejects_intelligence_with_epss(tmp_path):
+
+    report_file = tmp_path / "report.json"
+
+    write_report(report_file)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SUMMARIZE_SCRIPT),
+            str(report_file),
+            "--scanner",
+            "grype",
+            "--intelligence",
+            str(tmp_path / "intelligence.json"),
+            "--epss",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 2
+    assert (
+        "--intelligence cannot be combined with "
+        "--osv or --epss."
+    ) in result.stderr

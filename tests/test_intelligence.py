@@ -5,6 +5,7 @@ from lib.vulnerability import (
     Vulnerability,
     VulnerabilityIntelligence,
     CVSS,
+    EPSS,
 )
 from lib.intelligence import (
     IntelligenceProvider,
@@ -545,6 +546,141 @@ def test_enrich_vulnerabilities_populates_intelligence():
     )
     assert vulnerabilities[0].intelligence.description == "Log4Shell"
     assert vulnerabilities[0].intelligence.cwe == ["CWE-502"]
+
+
+def test_enrich_vulnerabilities_accepts_multiple_providers():
+
+    osv_intelligence = VulnerabilityIntelligence(
+        "CVE-2026-1234",
+        description="OSV description",
+    )
+
+    epss_intelligence = VulnerabilityIntelligence(
+        "CVE-2026-1234",
+        epss=EPSS(
+            score=0.97,
+            percentile=0.999,
+        ),
+    )
+
+    osv_provider = StaticIntelligenceProvider(
+        intelligence=osv_intelligence,
+    )
+
+    epss_provider = StaticIntelligenceProvider(
+        intelligence=epss_intelligence,
+    )
+
+    vulnerabilities = [
+        Vulnerability("CVE-2026-1234"),
+    ]
+
+    enrich_vulnerabilities(
+        vulnerabilities,
+        [
+            osv_provider,
+            epss_provider,
+        ],
+    )
+
+    intelligence = vulnerabilities[0].intelligence
+
+    assert intelligence.description == "OSV description"
+    assert intelligence.epss.score == 0.97
+    assert intelligence.epss.percentile == 0.999
+
+
+def test_enrich_vulnerabilities_applies_providers_in_order():
+
+    first = StaticIntelligenceProvider(
+        intelligence=VulnerabilityIntelligence(
+            "CVE-2026-1234",
+            description="First",
+        )
+    )
+
+    second = StaticIntelligenceProvider(
+        intelligence=VulnerabilityIntelligence(
+            "CVE-2026-1234",
+            description="Second",
+        )
+    )
+
+    vulnerabilities = [
+        Vulnerability("CVE-2026-1234"),
+    ]
+
+    enrich_vulnerabilities(
+        vulnerabilities,
+        [
+            first,
+            second,
+        ],
+    )
+
+    assert vulnerabilities[0].intelligence.description == "Second"
+
+
+def test_enrich_vulnerabilities_preserves_single_provider_behavior():
+
+    intelligence = VulnerabilityIntelligence(
+        "CVE-2026-1234",
+        description="Example",
+    )
+
+    provider = StaticIntelligenceProvider(
+        intelligence=intelligence,
+    )
+
+    vulnerabilities = [
+        Vulnerability("CVE-2026-1234"),
+    ]
+
+    enrich_vulnerabilities(
+        vulnerabilities,
+        provider,
+    )
+
+    assert vulnerabilities[0].intelligence is intelligence
+
+
+def test_enrich_vulnerabilities_handles_empty_provider_list():
+
+    vulnerabilities = [
+        Vulnerability("CVE-2025-1234"),
+    ]
+
+    enrich_vulnerabilities(
+        vulnerabilities,
+        [],
+    )
+
+    assert vulnerabilities[0].intelligence is None
+
+
+def test_enrich_vulnerabilities_accepts_provider_tuple():
+
+    intelligence = VulnerabilityIntelligence(
+        "CVE-2025-1234",
+        description="Test description",
+    )
+
+    provider = StaticIntelligenceProvider(
+        intelligence=intelligence,
+    )
+
+    vulnerabilities = [
+        Vulnerability("CVE-2025-1234"),
+    ]
+
+    enrich_vulnerabilities(
+        vulnerabilities,
+        (provider,),
+    )
+
+    assert vulnerabilities[0].intelligence.description == (
+        "Test description"
+    )
 
 
 # ---------------------------------------------------------------------------

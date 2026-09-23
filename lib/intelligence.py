@@ -484,6 +484,25 @@ class EPSSIntelligenceProvider(IntelligenceProvider):
         return intelligence
 
 
-def enrich_vulnerabilities(vulnerabilities, provider):
-    for vulnerability in vulnerabilities:
-        vulnerability.load_intelligence(provider)
+def enrich_vulnerabilities(vulnerabilities, providers):
+    if not isinstance(providers, (list, tuple)):
+        providers = [providers]
+
+    for provider in providers:
+        if not isinstance(provider, IntelligenceProvider):
+            raise ValueError(
+                "providers must contain IntelligenceProvider instances"
+            )
+
+    for provider in providers:
+        for vulnerability in vulnerabilities:
+            try:
+                vulnerability.load_intelligence(provider)
+            except Exception as exc:
+                raise RuntimeError(
+                    "Intelligence provider '{}' failed for {}: {}".format(
+                        provider.name,
+                        vulnerability.id,
+                        exc,
+                    )
+                ) from exc

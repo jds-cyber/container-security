@@ -99,16 +99,12 @@ def main():
 
     # Intelligence is optional
 
-    intelligence_provider = None
+    intelligence_providers = []
 
-    if sum([
-        bool(args.intelligence),
-        args.osv,
-        args.epss,
-    ]) > 1:
+    if args.intelligence and (args.osv or args.epss):
         parser.error(
-            "--intelligence, --osv, and --epss "
-            "cannot be used together."
+            "--intelligence cannot be combined with "
+            "--osv or --epss."
         )
 
     if args.intelligence:
@@ -116,8 +112,10 @@ def main():
             records = load_intelligence_records(
                 Path(args.intelligence)
             )
-            intelligence_provider = RecordIntelligenceProvider(
-                records=records
+            intelligence_providers.append(
+                RecordIntelligenceProvider(
+                    records=records
+                )
             )
 
         except FileNotFoundError as exc:
@@ -128,11 +126,15 @@ def main():
             print(str(exc), file=sys.stderr)
             return 1
 
-    elif args.osv:
-        intelligence_provider = OSVIntelligenceProvider()
+    if args.osv:
+        intelligence_providers.append(
+            OSVIntelligenceProvider()
+        )
 
-    elif args.epss:
-        intelligence_provider = EPSSIntelligenceProvider()
+    if args.epss:
+        intelligence_providers.append(
+            EPSSIntelligenceProvider()
+        )
 
     try:
         report = load_scan_report(
@@ -147,10 +149,10 @@ def main():
             report,
         )
 
-        if intelligence_provider is not None:
+        if intelligence_providers:
             enrich_vulnerabilities(
                 vulnerabilities,
-                intelligence_provider,
+                intelligence_providers,
             )
 
     except FileNotFoundError:
