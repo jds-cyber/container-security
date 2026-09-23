@@ -427,6 +427,19 @@ def test_generate_report_displays_detailed_vulnerability_intelligence(
                             "name": "example",
                         }
                     ],
+                    "risk_summary": {
+                        "indicators": [
+                            "high_cvss",
+                            "high_epss",
+                            "high_epss_percentile",
+                            "affected_package",
+                        ],
+                        "indicator_count": 4,
+                        "has_high_cvss": True,
+                        "has_high_epss": True,
+                        "has_high_epss_percentile": True,
+                        "has_affected_package": True,
+                    },
                     "references": [
                         "https://example.com/advisory",
                     ],
@@ -454,6 +467,12 @@ def test_generate_report_displays_detailed_vulnerability_intelligence(
     assert "PyPI" in content
     assert "example" in content
     assert "GHSA-abcd-1234-wxyz" in content
+    assert "Risk Indicators" in content
+    assert "high_cvss" in content
+    assert "high_epss" in content
+    assert "high_epss_percentile" in content
+    assert "affected_package" in content
+    assert "Indicator Count" in content
 
 
 # ============================================================

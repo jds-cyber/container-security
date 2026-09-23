@@ -479,6 +479,26 @@ td,th{
                     </ul>
                     {% endif %}
 
+                    {% if vulnerability.intelligence.risk_summary %}
+                    <h4>Risk Indicators</h4>
+
+                    <table>
+                        <tr>
+                            <th>Indicator Count</th>
+                            <td>{{ vulnerability.intelligence.risk_summary.indicator_count }}</td>
+                        </tr>
+
+                        {% if vulnerability.intelligence.risk_summary.indicators %}
+                        <tr>
+                            <th>Indicators</th>
+                            <td>
+                                {{ vulnerability.intelligence.risk_summary.indicators | join(", ") }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                    {% endif %}
+
                     {% else %}
                     <p>
                         <strong>Intelligence:</strong>
