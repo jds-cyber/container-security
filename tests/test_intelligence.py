@@ -1027,7 +1027,8 @@ def test_osv_intelligence_provider_caches_successful_result():
     first = provider.get("CVE-2026-1234")
     second = provider.get("CVE-2026-1234")
 
-    assert first is second
+    assert first == second
+    assert first is not second
     assert client.calls == [
         "CVE-2026-1234",
     ]
@@ -1078,15 +1079,48 @@ def test_osv_intelligence_provider_keeps_cache_entries_separate():
     second = provider.get("CVE-2026-5678")
     first_again = provider.get("CVE-2026-1234")
 
-    assert first is first_again
     assert first is not second
+    assert first.vulnerability_id != second.vulnerability_id
+    assert first.description != second.description
 
-    assert first.description == "CVE-2026-1234"
-    assert second.description == "CVE-2026-5678"
+    assert first_again is not first
+    assert first_again.vulnerability_id == first.vulnerability_id
+    assert first_again.description == first.description
 
     assert client.calls == [
         "CVE-2026-1234",
         "CVE-2026-5678",
+    ]
+
+
+def test_osv_intelligence_provider_cache_is_not_mutated_by_result_changes():
+    class FakeOSVClient:
+
+        def __init__(self):
+            self.calls = []
+
+        def get(self, vulnerability_id):
+            self.calls.append(vulnerability_id)
+
+            return {
+                "details": "Original description",
+                "severity": [],
+                "references": [],
+                "aliases": [],
+            }
+
+    client = FakeOSVClient()
+    provider = OSVIntelligenceProvider(client=client)
+
+    first = provider.get("CVE-2026-1234")
+
+    first.description = "Modified description"
+
+    second = provider.get("CVE-2026-1234")
+
+    assert second.description == "Original description"
+    assert client.calls == [
+        "CVE-2026-1234",
     ]
 
 # ---------------------------------------------------------------------------
@@ -1201,7 +1235,8 @@ def test_epss_intelligence_provider_caches_result():
     first = provider.get("CVE-2026-1234")
     second = provider.get("CVE-2026-1234")
 
-    assert first is second
+    assert first == second
+    assert first is not second
     assert client.calls == [
         "CVE-2026-1234"
     ]
@@ -1300,7 +1335,8 @@ def test_epss_intelligence_provider_caches_successful_result():
     first = provider.get("CVE-2026-1234")
     second = provider.get("CVE-2026-1234")
 
-    assert first is second
+    assert first == second
+    assert first is not second
     assert client.calls == [
         "CVE-2026-1234",
     ]
@@ -1351,15 +1387,48 @@ def test_epss_intelligence_provider_keeps_cache_entries_separate():
     second = provider.get("CVE-2026-5678")
     first_again = provider.get("CVE-2026-1234")
 
-    assert first is first_again
     assert first is not second
+    assert first.vulnerability_id != second.vulnerability_id
 
-    assert first.vulnerability_id == "CVE-2026-1234"
-    assert second.vulnerability_id == "CVE-2026-5678"
+    assert first_again is not first
+    assert first_again.vulnerability_id == first.vulnerability_id
+    assert first_again.epss.score == first.epss.score
+    assert first_again.epss.percentile == first.epss.percentile
 
     assert client.calls == [
         "CVE-2026-1234",
         "CVE-2026-5678",
+    ]
+
+
+def test_epss_intelligence_provider_cache_is_not_mutated_by_result_changes():
+    class FakeEPSSClient:
+
+        def __init__(self):
+            self.calls = []
+
+        def get(self, vulnerability_id):
+            self.calls.append(vulnerability_id)
+
+            return {
+                "cve": vulnerability_id,
+                "epss": "0.72",
+                "percentile": "0.91",
+                "date": "2026-09-01",
+            }
+
+    client = FakeEPSSClient()
+    provider = EPSSIntelligenceProvider(client=client)
+
+    first = provider.get("CVE-2026-1234")
+
+    first.epss.score = 0.01
+
+    second = provider.get("CVE-2026-1234")
+
+    assert second.epss.score == 0.72
+    assert client.calls == [
+        "CVE-2026-1234",
     ]
 
 # ---------------------------------------------------------------------------

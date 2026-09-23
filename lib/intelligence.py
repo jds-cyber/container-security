@@ -9,6 +9,7 @@ from lib.vulnerability import (
 )
 from lib.osv import OSVClient
 from lib.epss import EPSSClient
+from copy import deepcopy
 
 
 class IntelligenceProvider(ABC):
@@ -375,7 +376,9 @@ class OSVIntelligenceProvider(IntelligenceProvider):
         )
 
         if vulnerability_id in self._cache:
-            return self._cache[vulnerability_id]
+            return deepcopy(
+                self._cache[vulnerability_id]
+            )
 
         record = self.client.get(vulnerability_id)
 
@@ -411,7 +414,7 @@ class OSVIntelligenceProvider(IntelligenceProvider):
 
         self._cache[vulnerability_id] = intelligence
 
-        return intelligence
+        return deepcopy(intelligence)
 
 
 class EPSSIntelligenceProvider(IntelligenceProvider):
@@ -428,10 +431,14 @@ class EPSSIntelligenceProvider(IntelligenceProvider):
         self._cache = {}
 
     def get(self, vulnerability_id):
-        vulnerability_id = _validate_vulnerability_id(vulnerability_id)
+        vulnerability_id = _validate_vulnerability_id(
+            vulnerability_id
+        )
 
         if vulnerability_id in self._cache:
-            return self._cache[vulnerability_id]
+            return deepcopy(
+                self._cache[vulnerability_id]
+            )
 
         record = self.client.get(vulnerability_id)
 
@@ -481,7 +488,7 @@ class EPSSIntelligenceProvider(IntelligenceProvider):
 
         self._cache[vulnerability_id] = intelligence
 
-        return intelligence
+        return deepcopy(intelligence)
 
 
 def enrich_vulnerabilities(vulnerabilities, providers):
