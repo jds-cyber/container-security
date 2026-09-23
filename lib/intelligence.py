@@ -491,7 +491,7 @@ class EPSSIntelligenceProvider(IntelligenceProvider):
         return deepcopy(intelligence)
 
 
-def enrich_vulnerabilities(vulnerabilities, providers):
+def enrich_vulnerabilities(vulnerabilities, providers, strict=True):
     if not isinstance(providers, (list, tuple)):
         providers = [providers]
 
@@ -506,12 +506,15 @@ def enrich_vulnerabilities(vulnerabilities, providers):
             try:
                 vulnerability.load_intelligence(provider)
             except Exception as exc:
-                raise RuntimeError(
+                error = RuntimeError(
                     "Intelligence provider '{}' failed for {}: {}".format(
                         provider.name,
                         vulnerability.id,
                         exc,
                     )
-                ) from exc
+                )
+
+                if strict:
+                    raise error from exc
 
     return vulnerabilities

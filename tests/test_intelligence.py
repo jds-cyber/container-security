@@ -683,6 +683,68 @@ def test_enrich_vulnerabilities_accepts_provider_tuple():
     )
 
 
+def test_enrich_vulnerabilities_wraps_provider_failure_with_context():
+    class FailingProvider(IntelligenceProvider):
+        @property
+        def name(self):
+            return "failing"
+
+        def get(self, vulnerability_id):
+            raise ValueError("backend unavailable")
+
+    vulnerability = Vulnerability("CVE-2026-1234")
+
+    with pytest.raises(RuntimeError) as exc_info:
+        enrich_vulnerabilities(
+            [vulnerability],
+            [FailingProvider()],
+        )
+
+    assert str(exc_info.value) == (
+        "Intelligence provider 'failing' failed for "
+        "CVE-2026-1234: backend unavailable"
+    )
+    assert isinstance(exc_info.value.__cause__, ValueError)
+    assert str(exc_info.value.__cause__) == "backend unavailable"
+
+
+def test_enrich_vulnerabilities_is_strict_by_default():
+    class FailingProvider(IntelligenceProvider):
+        @property
+        def name(self):
+            return "failing"
+
+        def get(self, vulnerability_id):
+            raise ValueError("backend unavailable")
+
+    vulnerability = Vulnerability("CVE-2026-1234")
+
+    with pytest.raises(RuntimeError):
+        enrich_vulnerabilities(
+            [vulnerability],
+            [FailingProvider()],
+        )
+
+
+def test_enrich_vulnerabilities_accepts_strict_parameter():
+    class FailingProvider(IntelligenceProvider):
+        @property
+        def name(self):
+            return "failing"
+
+        def get(self, vulnerability_id):
+            raise ValueError("backend unavailable")
+
+    vulnerability = Vulnerability("CVE-2026-1234")
+
+    with pytest.raises(RuntimeError):
+        enrich_vulnerabilities(
+            [vulnerability],
+            [FailingProvider()],
+            strict=True,
+        )
+
+
 # ---------------------------------------------------------------------------
 # OSVIntelligenceProvider
 # ---------------------------------------------------------------------------
