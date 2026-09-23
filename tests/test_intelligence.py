@@ -1007,6 +1007,53 @@ def test_osv_intelligence_provider_skips_malformed_dates():
     )
 
 
+def test_osv_intelligence_provider_caches_successful_result():
+    class FakeOSVClient:
+        def __init__(self):
+            self.calls = []
+
+        def get(self, vulnerability_id):
+            self.calls.append(vulnerability_id)
+            return {
+                "details": "Test vulnerability",
+                "severity": [],
+                "references": [],
+                "aliases": [],
+            }
+
+    client = FakeOSVClient()
+    provider = OSVIntelligenceProvider(client=client)
+
+    first = provider.get("CVE-2026-1234")
+    second = provider.get("CVE-2026-1234")
+
+    assert first is second
+    assert client.calls == [
+        "CVE-2026-1234",
+    ]
+
+
+def test_osv_intelligence_provider_caches_missing_result():
+    class FakeOSVClient:
+        def __init__(self):
+            self.calls = []
+
+        def get(self, vulnerability_id):
+            self.calls.append(vulnerability_id)
+            return None
+
+    client = FakeOSVClient()
+    provider = OSVIntelligenceProvider(client=client)
+
+    first = provider.get("CVE-2026-1234")
+    second = provider.get("CVE-2026-1234")
+
+    assert first is None
+    assert second is None
+    assert client.calls == [
+        "CVE-2026-1234",
+    ]
+
 # ---------------------------------------------------------------------------
 # EPSSIntelligenceProvider
 # ---------------------------------------------------------------------------
@@ -1197,6 +1244,53 @@ def test_epss_intelligence_provider_rejects_invalid_date():
     ):
         provider.get("CVE-2026-1234")
 
+
+def test_epss_intelligence_provider_caches_successful_result():
+    class FakeEPSSClient:
+        def __init__(self):
+            self.calls = []
+
+        def get(self, vulnerability_id):
+            self.calls.append(vulnerability_id)
+            return {
+                "cve": vulnerability_id,
+                "epss": "0.72",
+                "percentile": "0.91",
+                "date": "2026-09-01",
+            }
+
+    client = FakeEPSSClient()
+    provider = EPSSIntelligenceProvider(client=client)
+
+    first = provider.get("CVE-2026-1234")
+    second = provider.get("CVE-2026-1234")
+
+    assert first is second
+    assert client.calls == [
+        "CVE-2026-1234",
+    ]
+
+
+def test_epss_intelligence_provider_caches_missing_result():
+    class FakeEPSSClient:
+        def __init__(self):
+            self.calls = []
+
+        def get(self, vulnerability_id):
+            self.calls.append(vulnerability_id)
+            return None
+
+    client = FakeEPSSClient()
+    provider = EPSSIntelligenceProvider(client=client)
+
+    first = provider.get("CVE-2026-1234")
+    second = provider.get("CVE-2026-1234")
+
+    assert first is None
+    assert second is None
+    assert client.calls == [
+        "CVE-2026-1234",
+    ]
 
 # ---------------------------------------------------------------------------
 # _convert_osv_cvss

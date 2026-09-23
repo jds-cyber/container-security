@@ -506,3 +506,5 @@ def enrich_vulnerabilities(vulnerabilities, providers):
                         exc,
                     )
                 ) from exc
+
+    return vulnerabilities
