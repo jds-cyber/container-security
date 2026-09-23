@@ -11,6 +11,8 @@ from lib.vulnerability import (
     Vulnerability,
     VulnerabilityIntelligence,
     CVSS,
+    EPSS,
+    AffectedPackage,
 )
 
 
@@ -107,7 +109,17 @@ def test_intelligence_summary_counts_cvss_and_cwe():
             vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
             severity="high",
         ),
+        epss=EPSS(
+            score=0.8,
+            percentile=0.95
+        ),
         cwe=["CWE-787"],
+        affected_packages=[
+            AffectedPackage(
+                ecosystem="PyPI",
+                name="requests",
+            ),
+        ],
     )
 
     vulnerabilities = [
@@ -129,6 +141,10 @@ def test_intelligence_summary_counts_cvss_and_cwe():
     assert result["unenriched"] == 1
     assert result["cvss_available"] == 1
     assert result["cwe_available"] == 1
+    assert result["high_cvss"] == 1
+    assert result["high_epss"] == 1
+    assert result["high_epss_percentile"] == 1
+    assert result["affected_package"] == 1
 
 
 def test_intelligence_summary_counts_enriched_without_cvss_or_cwe():
@@ -214,6 +230,10 @@ def test_security_summary_includes_intelligence_summary():
         "unenriched": 1,
         "cvss_available": 1,
         "cwe_available": 1,
+        "high_cvss": 1,
+        "high_epss": 0,
+        "high_epss_percentile": 0,
+        "affected_package": 0,
     }
 
 
@@ -280,6 +300,10 @@ def test_empty_summary():
     assert summary["intelligence_summary"]["unenriched"] == 0
     assert summary["intelligence_summary"]["cvss_available"] == 0
     assert summary["intelligence_summary"]["cwe_available"] == 0
+    assert summary["intelligence_summary"]["high_cvss"] == 0
+    assert summary["intelligence_summary"]["high_epss"] == 0
+    assert summary["intelligence_summary"]["high_epss_percentile"] == 0
+    assert summary["intelligence_summary"]["affected_package"] == 0
 
 
 # ---------------------------------------------------------------------------

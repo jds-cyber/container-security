@@ -27,6 +27,10 @@ def empty_summary():
             "unenriched": 0,
             "cvss_available": 0,
             "cwe_available": 0,
+            "high_cvss": 0,
+            "high_epss": 0,
+            "high_epss_percentile": 0,
+            "affected_package": 0,
         },
     }
 
@@ -42,6 +46,10 @@ def intelligence_summary(vulnerabilities):
         "unenriched": 0,
         "cvss_available": 0,
         "cwe_available": 0,
+        "high_cvss": 0,
+        "high_epss": 0,
+        "high_epss_percentile": 0,
+        "affected_package": 0,
     }
 
     for vulnerability in vulnerabilities:
@@ -58,6 +66,10 @@ def intelligence_summary(vulnerabilities):
 
         if intelligence.cwe:
             summary["cwe_available"] += 1
+
+        for indicator in intelligence.risk_indicators():
+            if indicator in summary:
+                summary[indicator] += 1
 
     return summary
 

@@ -155,6 +155,10 @@ def generate_report(
             "unenriched": 0,
             "cvss_available": 0,
             "cwe_available": 0,
+            "high_cvss": 0,
+            "high_epss": 0,
+            "high_epss_percentile": 0,
+            "affected_package": 0,
         },
     )
 

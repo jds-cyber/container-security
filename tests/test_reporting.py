@@ -342,6 +342,10 @@ def test_generate_report_displays_intelligence_summary(tmp_path):
             "unenriched": 1,
             "cvss_available": 1,
             "cwe_available": 1,
+            "high_cvss": 1,
+            "high_epss": 1,
+            "high_epss_percentile": 0,
+            "affected_package": 1,
         },
         "vulnerabilities": [],
     }
@@ -363,6 +367,10 @@ def test_generate_report_displays_intelligence_summary(tmp_path):
     assert "Unenriched" in content
     assert "CVSS Available" in content
     assert "CWE Available" in content
+    assert "High CVSS" in content
+    assert "High EPSS" in content
+    assert "High EPSS Percentile" in content
+    assert "Affected Package" in content
 
 
 def test_generate_report_displays_detailed_vulnerability_intelligence(
