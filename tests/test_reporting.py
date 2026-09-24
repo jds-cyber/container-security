@@ -440,6 +440,12 @@ def test_generate_report_displays_detailed_vulnerability_intelligence(
                         "has_high_epss_percentile": True,
                         "has_affected_package": True,
                     },
+                    "remediation": {
+                        "exploitation_likelihood": "high",
+                        "known_exploitation": True,
+                        "priority": "critical",
+                        "guidance": "Upgrade to the latest supported version.",
+                    },
                     "references": [
                         "https://example.com/advisory",
                     ],
@@ -473,6 +479,11 @@ def test_generate_report_displays_detailed_vulnerability_intelligence(
     assert "high_epss_percentile" in content
     assert "affected_package" in content
     assert "Indicator Count" in content
+    assert "Remediation" in content
+    assert "Exploitation Likelihood" in content
+    assert "Known Exploitation" in content
+    assert "Priority" in content
+    assert "Upgrade to the latest supported version." in content
 
 
 # ============================================================

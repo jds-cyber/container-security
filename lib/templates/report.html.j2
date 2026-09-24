@@ -505,6 +505,41 @@ td,th{
                         No vulnerability intelligence available.
                     </p>
                     {% endif %}
+
+                {% if vulnerability.intelligence.remediation %}
+                <h4>Remediation</h4>
+
+                <table>
+                <tr>
+                    <th>Exploitation Likelihood</th>
+                    <td>
+                        {{ vulnerability.intelligence.remediation.exploitation_likelihood }}
+                    </td>
+                    </tr>
+
+                <tr>
+                    <th>Known Exploitation</th>
+                    <td>
+                        {{ vulnerability.intelligence.remediation.known_exploitation }}
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>Priority</th>
+                    <td>
+                        {{ vulnerability.intelligence.remediation.priority }}
+                    </td>
+                </tr>
+            </table>
+
+            {% if vulnerability.intelligence.remediation.guidance %}
+            <p>
+                <strong>Guidance:</strong>
+                {{ vulnerability.intelligence.remediation.guidance }}
+            </p>
+            {% endif %}
+            {% endif %}  
+
                 </div>
             {% endfor %}
         {% else %}
