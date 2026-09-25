@@ -413,7 +413,7 @@ def test_enrich_vulnerabilities_loads_intelligence():
 
     enrich_vulnerabilities(vulnerabilities, provider)
 
-    assert vulnerabilities[0].intelligence is intelligence
+    assert vulnerabilities[0].intelligence == intelligence
 
 
 def test_enrich_vulnerabilities_loads_intelligence_for_multiple_vulnerabilities():
@@ -641,7 +641,7 @@ def test_enrich_vulnerabilities_preserves_single_provider_behavior():
         provider,
     )
 
-    assert vulnerabilities[0].intelligence is intelligence
+    assert vulnerabilities[0].intelligence == intelligence
 
 
 def test_enrich_vulnerabilities_handles_empty_provider_list():
