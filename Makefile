@@ -4,6 +4,7 @@ LATEST_DIR ?= $(REPORT_DIR)/latest
 REPORT ?= $(LATEST_DIR)/report.json
 SUMMARY ?= $(LATEST_DIR)/summary.json
 HTML ?= $(LATEST_DIR)/report.html
+PYTHON ?= python3
 
 install:
 	python3 -m pip install -r requirements.txt
@@ -22,10 +23,16 @@ scan:
 	cp "$$LATEST_SCAN/report.json" "$(REPORT)"
 
 summarize:
-	@./scripts/summarize.py "$(REPORT)" > "$(SUMMARY)"
+	@$(PYTHON) ./scripts/summarize.py \
+		"$(REPORT)" \
+		--scanner grype \
+		--policy config/security_policy.yml \
+		--osv \
+		--epss \
+		> "$(SUMMARY)"
 
 report:
-	@./scripts/report.py "$(SUMMARY)" "$(HTML)" "$(IMAGE)"
+	@$(PYTHON) ./scripts/report.py "$(SUMMARY)" "$(HTML)" "$(IMAGE)"
 
 security-report:
 	@$(MAKE) scan IMAGE="$(IMAGE)"

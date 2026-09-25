@@ -132,3 +132,44 @@ def test_security_report_shell_succeeds_when_both_succeed():
     )
 
     assert result.returncode == 0
+
+
+# ============================================================
+# Summarize target configuration
+# ============================================================
+
+def test_summarize_target_uses_grype_policy_osv_and_epss():
+    content = MAKEFILE.read_text()
+
+    lines = content.splitlines()
+
+    summarize_index = next(
+        i for i, line in enumerate(lines)
+        if line.startswith("summarize:")
+    )
+
+    summarize_block = "\n".join(
+        lines[summarize_index:summarize_index + 8]
+    )
+
+    assert "--scanner grype" in summarize_block
+    assert "--policy config/security_policy.yml" in summarize_block
+    assert "--osv" in summarize_block
+    assert "--epss" in summarize_block
+
+
+# ============================================================
+# Python interpreter configuration
+# ============================================================
+
+def test_makefile_defines_python_interpreter():
+    content = MAKEFILE.read_text()
+
+    assert "PYTHON ?= python3" in content
+
+
+def test_python_scripts_use_configured_interpreter():
+    content = MAKEFILE.read_text()
+
+    assert "$(PYTHON) ./scripts/summarize.py" in content
+    assert "$(PYTHON) ./scripts/report.py" in content

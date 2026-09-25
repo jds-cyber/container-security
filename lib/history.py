@@ -127,6 +127,43 @@ def save_history(summary, directory="reports/history", image_name="Unknown"):
     return output
 
 
+def _normalize_legacy_history(summary, file):
+    """
+    Populate missing metadata for legacy history files.
+    """
+    normalized = dict(summary)
+
+    try:
+        scan_time = None
+
+        for filename_format in (
+            "%Y-%m-%d_%H%M%S-%f",
+            "%Y-%m-%d_%H%M%S",
+        ):
+            try:
+                scan_time = datetime.strptime(
+                    file.stem,
+                    filename_format,
+                )
+                break
+            except ValueError:
+                continue
+
+        if scan_time is None:
+            return summary
+
+    except (TypeError, ValueError):
+        return summary
+
+    if not normalized.get("scan_id"):
+        normalized["scan_id"] = file.stem
+
+    if not normalized.get("scan_timestamp"):
+        normalized["scan_timestamp"] = scan_time.isoformat()
+
+    return normalized
+
+
 def load_history(history_dir):
     """
     Load previous scan summaries.
@@ -145,6 +182,11 @@ def load_history(history_dir):
             raise ValueError(
                 f"Invalid history summary structure: {file}"
             )
+
+        summary = _normalize_legacy_history(
+            summary,
+            file,
+        )
 
         _validate_history_summary(summary, file)
 

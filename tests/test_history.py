@@ -375,3 +375,108 @@ def test_load_history_rejects_invalid_vulnerability_ids(tmp_path):
         assert False, "Expected ValueError"
     except ValueError:
         pass
+
+
+# ============================================================
+# Legacy history compatibility
+# ============================================================
+
+def test_load_history_supports_legacy_history_metadata(tmp_path):
+    file = tmp_path / "2026-08-10_143415.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "image": "pywinrm-ansible:dev",
+                "scan_id": None,
+                "scan_timestamp": None,
+                "security_score": 80,
+            }
+        )
+    )
+
+    history = load_history(tmp_path)
+
+    assert len(history) == 1
+    assert history[0]["image"] == "pywinrm-ansible:dev"
+    assert history[0]["scan_id"] == "2026-08-10_143415"
+    assert history[0]["scan_timestamp"] == "2026-08-10T14:34:15"
+
+
+def test_load_history_supports_legacy_microsecond_history_metadata(
+    tmp_path,
+):
+    file = tmp_path / "2026-08-10_145812-927892.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "image": "pywinrm-ansible:dev",
+                "scan_id": None,
+                "scan_timestamp": None,
+                "security_score": 9,
+            }
+        )
+    )
+
+    history = load_history(tmp_path)
+
+    assert len(history) == 1
+    assert history[0]["image"] == "pywinrm-ansible:dev"
+    assert history[0]["scan_id"] == "2026-08-10_145812-927892"
+    assert (
+        history[0]["scan_timestamp"]
+        == "2026-08-10T14:58:12.927892"
+    )
+
+
+def test_load_history_supports_partial_legacy_metadata(
+    tmp_path,
+):
+    file = tmp_path / "2026-08-10_152619-290171.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "image": "pywinrm-ansible:dev",
+                "scan_id": None,
+                "scan_timestamp": "2026-08-10T15:26:19.290188",
+                "security_score": 9,
+            }
+        )
+    )
+
+    history = load_history(tmp_path)
+
+    assert len(history) == 1
+    assert history[0]["scan_id"] == "2026-08-10_152619-290171"
+    assert (
+        history[0]["scan_timestamp"]
+        == "2026-08-10T15:26:19.290188"
+    )
+
+
+def test_load_history_supports_missing_legacy_timestamp(
+    tmp_path,
+):
+    file = tmp_path / "2026-08-10_202505-662621.json"
+
+    file.write_text(
+        json.dumps(
+            {
+                "image": "pywinrm-ansible:dev",
+                "scan_id": "2026-08-10_202505-662621",
+                "scan_timestamp": None,
+                "security_score": 9,
+            }
+        )
+    )
+
+    history = load_history(tmp_path)
+
+    assert len(history) == 1
+    assert history[0]["scan_id"] == "2026-08-10_202505-662621"
+    assert (
+        history[0]["scan_timestamp"]
+        == "2026-08-10T20:25:05.662621"
+    )
