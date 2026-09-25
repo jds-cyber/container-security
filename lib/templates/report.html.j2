@@ -237,6 +237,70 @@ td,th{
                 </tr>
             </table>
 
+            <h3 style="margin-top: 25px;">Intelligence Comparison</h3>
+            <table>
+                <tr>
+                    <th>Metric</th>
+                    <th>Previous</th>
+                    <th>Current</th>
+                    <th>Change</th>
+                </tr>
+                <tr>
+                    <td>Total Vulnerabilities</td>
+                    <td>{{ comparison.intelligence.total.previous }}</td>
+                    <td>{{ comparison.intelligence.total.current }}</td>
+                    <td>{{ comparison.intelligence.total.delta }}</td>
+                </tr>
+                <tr>
+                    <td>Enriched</td>
+                    <td>{{ comparison.intelligence.enriched.previous }}</td>
+                    <td>{{ comparison.intelligence.enriched.current }}</td>
+                    <td>{{ comparison.intelligence.enriched.delta }}</td>
+                </tr>
+                <tr>
+                    <td>Unenriched</td>
+                    <td>{{ comparison.intelligence.unenriched.previous }}</td>
+                    <td>{{ comparison.intelligence.unenriched.current }}</td>
+                    <td>{{ comparison.intelligence.unenriched.delta }}</td>
+                </tr>
+                <tr>
+                    <td>CVSS Available</td>
+                    <td>{{ comparison.intelligence.cvss_available.previous }}</td>
+                    <td>{{ comparison.intelligence.cvss_available.current }}</td>
+                    <td>{{ comparison.intelligence.cvss_available.delta }}</td>
+                </tr>
+                <tr>
+                    <td>CWE Available</td>
+                    <td>{{ comparison.intelligence.cwe_available.previous }}</td>
+                    <td>{{ comparison.intelligence.cwe_available.current }}</td>
+                    <td>{{ comparison.intelligence.cwe_available.delta }}</td>
+                </tr>
+                <tr>
+                    <td>High CVSS</td>
+                    <td>{{ comparison.intelligence.high_cvss.previous }}</td>
+                    <td>{{ comparison.intelligence.high_cvss.current }}</td>
+                    <td>{{ comparison.intelligence.high_cvss.delta }}</td>
+                </tr>
+                <tr>
+                    <td>High EPSS</td>
+                    <td>{{ comparison.intelligence.high_epss.previous }}</td>
+                    <td>{{ comparison.intelligence.high_epss.current }}</td>
+                    <td>{{ comparison.intelligence.high_epss.delta }}</td>
+                </tr>
+                <tr>
+                    <td>High EPSS Percentile</td>
+                    <td>{{ comparison.intelligence.high_epss_percentile.previous }}</td>
+                    <td>{{ comparison.intelligence.high_epss_percentile.current }}</td>
+                    <td>{{ comparison.intelligence.high_epss_percentile.delta }}</td>
+                </tr>
+                <tr>
+                    <td>Affected Package</td>
+                    <td>{{ comparison.intelligence.affected_package.previous }}</td>
+                    <td>{{ comparison.intelligence.affected_package.current }}</td>
+                    <td>{{ comparison.intelligence.affected_package.delta }}</td>
+                </tr>
+            </table>
+
         {% else %}
             <p>No previous scan available for comparison.</p>
         {% endif %}

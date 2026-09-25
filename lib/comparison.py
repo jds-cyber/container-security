@@ -159,3 +159,83 @@ def compare_severity(previous, current):
         }
 
     return comparison
+
+
+def compare_intelligence(previous, current):
+    """
+    Compare vulnerability intelligence between two scans.
+    """
+
+    if not isinstance(previous, dict):
+        raise ValueError(
+            "Invalid comparison summary: expected dict"
+        )
+
+    if not isinstance(current, dict):
+        raise ValueError(
+            "Invalid comparison summary: expected dict"
+        )
+
+    previous_intelligence = previous.get(
+        "intelligence_summary",
+        {},
+    )
+
+    current_intelligence = current.get(
+        "intelligence_summary",
+        {},
+    )
+
+    if not isinstance(previous_intelligence, dict):
+        raise ValueError(
+            "Invalid intelligence_summary in comparison summary"
+        )
+
+    if not isinstance(current_intelligence, dict):
+        raise ValueError(
+            "Invalid intelligence_summary in comparison summary"
+        )
+
+    fields = (
+        "total",
+        "enriched",
+        "unenriched",
+        "cvss_available",
+        "cwe_available",
+        "high_cvss",
+        "high_epss",
+        "high_epss_percentile",
+        "affected_package",
+    )
+
+    comparison = {}
+
+    for field in fields:
+        previous_value = previous_intelligence.get(field, 0)
+        current_value = current_intelligence.get(field, 0)
+
+        if (
+            isinstance(previous_value, bool)
+            or not isinstance(previous_value, int)
+            or previous_value < 0
+        ):
+            raise ValueError(
+                f"Invalid intelligence {field} in comparison summary"
+            )
+
+        if (
+            isinstance(current_value, bool)
+            or not isinstance(current_value, int)
+            or current_value < 0
+        ):
+            raise ValueError(
+                f"Invalid intelligence {field} in comparison summary"
+            )
+
+        comparison[field] = {
+            "previous": previous_value,
+            "current": current_value,
+            "delta": current_value - previous_value,
+        }
+
+    return comparison

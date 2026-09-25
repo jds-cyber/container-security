@@ -373,6 +373,94 @@ def test_generate_report_displays_intelligence_summary(tmp_path):
     assert "Affected Package" in content
 
 
+def test_generate_report_displays_intelligence_comparison(
+    tmp_path,
+):
+
+    previous_summary = {
+        "findings": 1,
+        "unique_vulnerabilities": 1,
+        "security_score": 80,
+        "vulnerability_ids": [
+            "CVE-2026-1234",
+        ],
+        "critical": 1,
+        "high": 2,
+        "medium": 3,
+        "low": 1,
+        "negligible": 0,
+        "unknown": 0,
+        "intelligence_summary": {
+            "total": 7,
+            "enriched": 4,
+            "unenriched": 3,
+            "cvss_available": 3,
+            "cwe_available": 2,
+            "high_cvss": 2,
+            "high_epss": 1,
+            "high_epss_percentile": 1,
+            "affected_package": 1,
+        },
+    }
+
+    summary = {
+        "findings": 1,
+        "unique_vulnerabilities": 1,
+        "vulnerability_ids": [
+            "CVE-2026-1234",
+        ],
+        "critical": 1,
+        "high": 1,
+        "medium": 0,
+        "low": 0,
+        "negligible": 0,
+        "unknown": 0,
+        "weighted_risk": 10,
+        "security_score": 85,
+        "grade": "A",
+        "risk_level": "MEDIUM",
+        "intelligence_summary": {
+            "total": 6,
+            "enriched": 5,
+            "unenriched": 1,
+            "cvss_available": 4,
+            "cwe_available": 3,
+            "high_cvss": 1,
+            "high_epss": 2,
+            "high_epss_percentile": 2,
+            "affected_package": 2,
+        },
+        "vulnerabilities": [],
+    }
+
+    output = tmp_path / "report.html"
+
+    generate_report(
+        summary,
+        output,
+        image_name="test-image",
+        previous_summary=previous_summary,
+        history_dir=tmp_path / "history",
+    )
+
+    content = output.read_text()
+
+    assert "Intelligence Comparison" in content
+    assert "Total Vulnerabilities" in content
+    assert "CVSS Available" in content
+    assert "High EPSS" in content
+    assert "Affected Package" in content
+
+    assert (
+        "{{ comparison.intelligence.enriched.previous }}"
+        not in content
+    )
+
+    assert "Previous" in content
+    assert "Current" in content
+    assert "Change" in content
+
+
 def test_generate_report_displays_detailed_vulnerability_intelligence(
     tmp_path,
 ):
@@ -544,6 +632,67 @@ def test_security_comparison_without_previous_scan():
     )
 
     assert result is None
+
+
+def test_security_comparison_includes_intelligence():
+
+    previous = {
+        "security_score": 80,
+        "vulnerability_ids": [
+            "CVE-2026-1234",
+        ],
+        "critical": 1,
+        "high": 2,
+        "medium": 3,
+        "low": 1,
+        "negligible": 0,
+        "unknown": 0,
+        "intelligence_summary": {
+            "total": 7,
+            "enriched": 4,
+            "unenriched": 3,
+            "cvss_available": 3,
+            "cwe_available": 2,
+            "high_cvss": 2,
+            "high_epss": 1,
+            "high_epss_percentile": 1,
+            "affected_package": 1,
+        },
+    }
+
+    current = {
+        "security_score": 85,
+        "vulnerability_ids": [
+            "CVE-2026-1234",
+        ],
+        "critical": 1,
+        "high": 1,
+        "medium": 3,
+        "low": 1,
+        "negligible": 0,
+        "unknown": 0,
+        "intelligence_summary": {
+            "total": 6,
+            "enriched": 5,
+            "unenriched": 1,
+            "cvss_available": 4,
+            "cwe_available": 3,
+            "high_cvss": 1,
+            "high_epss": 2,
+            "high_epss_percentile": 2,
+            "affected_package": 2,
+        },
+    }
+
+    result = security_comparison(previous, current)
+
+    assert "intelligence" in result
+    assert result["intelligence"]["enriched"]["previous"] == 4
+    assert result["intelligence"]["enriched"]["current"] == 5
+    assert result["intelligence"]["enriched"]["delta"] == 1
+    assert result["intelligence"]["unenriched"]["delta"] == -2
+    assert result["intelligence"]["high_epss"]["delta"] == 1
+    assert result["intelligence"]["affected_package"]["delta"] == 1
 
 
 # ============================================================

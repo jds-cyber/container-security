@@ -1,5 +1,14 @@
-from lib.comparison import compare_scores, compare_vulnerabilities, compare_severity
+from lib.comparison import (
+    compare_scores,
+    compare_vulnerabilities,
+    compare_severity,
+    compare_intelligence,
+)
 
+
+# ============================================================
+# Security score comparison
+# ============================================================
 
 def test_compare_scores_improved():
 
@@ -34,6 +43,9 @@ def test_compare_scores_no_change():
     assert result["trend"] == "No Change"
 
 
+# ============================================================
+# Vulnerability ID comparison
+# ============================================================
 
 def test_compare_vulnerabilities():
 
@@ -62,6 +74,76 @@ def test_compare_vulnerabilities():
         "CVE-2026-9669"
     ]
 
+
+# ============================================================
+# Vulnerability ID validation
+# ============================================================
+
+def test_compare_vulnerabilities_rejects_invalid_previous_ids():
+
+    previous = {
+        "vulnerability_ids": [
+            "CVE-2026-1234",
+            None,
+        ]
+    }
+
+    current = {
+        "vulnerability_ids": [
+            "CVE-2026-1234",
+        ]
+    }
+
+    try:
+        compare_vulnerabilities(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_vulnerabilities_rejects_invalid_current_ids():
+
+    previous = {
+        "vulnerability_ids": [
+            "CVE-2026-1234",
+        ]
+    }
+
+    current = {
+        "vulnerability_ids": [
+            "",
+        ]
+    }
+
+    try:
+        compare_vulnerabilities(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_compare_vulnerabilities_rejects_non_list_ids():
+
+    previous = {
+        "vulnerability_ids": "CVE-2026-1234"
+    }
+
+    current = {
+        "vulnerability_ids": [
+            "CVE-2026-1234",
+        ]
+    }
+
+    try:
+        compare_vulnerabilities(previous, current)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+# ============================================================
+# Severity comparison
+# ============================================================
 
 def test_compare_severity():
 
@@ -95,6 +177,59 @@ def test_compare_severity():
     assert result["negligible"]["delta"] == -5
     assert result["unknown"]["delta"] == 0
 
+
+# ============================================================
+# Intelligence comparison
+# ============================================================
+
+def test_compare_intelligence():
+
+    previous = {
+        "intelligence_summary": {
+            "total": 10,
+            "enriched": 6,
+            "unenriched": 4,
+            "cvss_available": 5,
+            "cwe_available": 4,
+            "high_cvss": 3,
+            "high_epss": 2,
+            "high_epss_percentile": 1,
+            "affected_package": 2,
+        }
+    }
+
+    current = {
+        "intelligence_summary": {
+            "total": 12,
+            "enriched": 9,
+            "unenriched": 3,
+            "cvss_available": 8,
+            "cwe_available": 7,
+            "high_cvss": 4,
+            "high_epss": 5,
+            "high_epss_percentile": 3,
+            "affected_package": 4,
+        }
+    }
+
+    result = compare_intelligence(previous, current)
+
+    assert result["enriched"]["previous"] == 6
+    assert result["enriched"]["current"] == 9
+    assert result["enriched"]["delta"] == 3
+
+    assert result["unenriched"]["delta"] == -1
+    assert result["cvss_available"]["delta"] == 3
+    assert result["cwe_available"]["delta"] == 3
+    assert result["high_cvss"]["delta"] == 1
+    assert result["high_epss"]["delta"] == 3
+    assert result["high_epss_percentile"]["delta"] == 2
+    assert result["affected_package"]["delta"] == 2
+
+
+# ============================================================
+# Security score validation
+# ============================================================
 
 def test_compare_scores_rejects_invalid_previous_score():
 
@@ -168,67 +303,9 @@ def test_compare_scores_rejects_missing_current_score():
         pass
 
 
-def test_compare_vulnerabilities_rejects_invalid_previous_ids():
-
-    previous = {
-        "vulnerability_ids": [
-            "CVE-2026-1234",
-            None,
-        ]
-    }
-
-    current = {
-        "vulnerability_ids": [
-            "CVE-2026-1234",
-        ]
-    }
-
-    try:
-        compare_vulnerabilities(previous, current)
-        assert False, "Expected ValueError"
-    except ValueError:
-        pass
-
-
-def test_compare_vulnerabilities_rejects_invalid_current_ids():
-
-    previous = {
-        "vulnerability_ids": [
-            "CVE-2026-1234",
-        ]
-    }
-
-    current = {
-        "vulnerability_ids": [
-            "",
-        ]
-    }
-
-    try:
-        compare_vulnerabilities(previous, current)
-        assert False, "Expected ValueError"
-    except ValueError:
-        pass
-
-
-def test_compare_vulnerabilities_rejects_non_list_ids():
-
-    previous = {
-        "vulnerability_ids": "CVE-2026-1234"
-    }
-
-    current = {
-        "vulnerability_ids": [
-            "CVE-2026-1234",
-        ]
-    }
-
-    try:
-        compare_vulnerabilities(previous, current)
-        assert False, "Expected ValueError"
-    except ValueError:
-        pass
-
+# ============================================================
+# Severity validation
+# ============================================================
 
 def test_compare_severity_rejects_invalid_count():
 
@@ -264,18 +341,25 @@ def test_compare_severity_rejects_negative_count():
         pass
 
 
-def test_compare_severity_rejects_boolean_count():
+# ============================================================
+# Intelligence validation
+# ============================================================
+
+def test_compare_intelligence_handles_missing_summary():
 
     previous = {
-        "critical": True,
+        "security_score": 80,
     }
 
     current = {
-        "critical": 6,
+        "security_score": 85,
     }
 
-    try:
-        compare_severity(previous, current)
-        assert False, "Expected ValueError"
-    except ValueError:
-        pass
+    result = compare_intelligence(previous, current)
+
+    assert result["total"]["previous"] == 0
+    assert result["total"]["current"] == 0
+    assert result["enriched"]["previous"] == 0
+    assert result["enriched"]["current"] == 0
+    assert result["unenriched"]["previous"] == 0
+    assert result["unenriched"]["current"] == 0

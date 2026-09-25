@@ -8,6 +8,7 @@ from lib.comparison import (
     compare_scores,
     compare_vulnerabilities,
     compare_severity,
+    compare_intelligence,
 )
 
 
@@ -186,13 +187,19 @@ def security_comparison(previous, current):
     """
     Build security comparison data between two scans.
     """
-
     if previous is None:
         return None
 
     score_comparison = compare_scores(previous, current)
-    vulnerability_comparison = compare_vulnerabilities(previous, current)
+    vulnerability_comparison = compare_vulnerabilities(
+        previous,
+        current,
+    )
     severity_comparison = compare_severity(previous, current)
+    intelligence_comparison = compare_intelligence(
+        previous,
+        current,
+    )
 
     severity_improved = 0
     severity_regressed = 0
@@ -220,6 +227,7 @@ def security_comparison(previous, current):
         "score": score_comparison,
         "vulnerabilities": vulnerability_comparison,
         "severity": severity_comparison,
+        "intelligence": intelligence_comparison,
         "severity_summary": {
             "improved": severity_improved,
             "regressed": severity_regressed,
