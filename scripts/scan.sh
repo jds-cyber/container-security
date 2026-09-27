@@ -23,6 +23,10 @@ mkdir -p "$SCAN_DIR"
 
 TABLE_REPORT="$SCAN_DIR/report.txt"
 JSON_REPORT="$SCAN_DIR/report.json"
+SBOM_SCAN_DIR="$ROOT_DIR/$SBOM_DIR/$SCAN_ID"
+SBOM_REPORT="$SBOM_SCAN_DIR/sbom.json"
+
+mkdir -p "$SBOM_SCAN_DIR"
 
 info "Starting security scan"
 log "Starting scan for image: $IMAGE"
@@ -60,6 +64,18 @@ docker run --rm \
   "docker:$IMAGE" \
   -o json > "$JSON_REPORT"
 
+info "Generating SBOM..."
+
+docker run --rm \
+  -e SSL_CERT_FILE=/tmp/corporate-ca.crt \
+  -v "$ROOT_DIR/$CERT_FILE:/tmp/corporate-ca.crt:ro" \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  "$SYFT_IMAGE" \
+  "docker:$IMAGE" \
+  -o json > "$SBOM_REPORT"
+
+success "SBOM generation completed"
+
 success "Scan completed"
 
 echo
@@ -68,6 +84,7 @@ echo "Container Security Toolkit"
 echo "=========================================="
 echo "Image   : $IMAGE"
 echo "Reports : $SCAN_DIR"
+echo "SBOM    : $SBOM_REPORT"
 echo "Log     : $LOG_FILE"
 echo "=========================================="
 
