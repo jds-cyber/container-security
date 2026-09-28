@@ -1,4 +1,10 @@
 from lib.vulnerability import Vulnerability
+from lib.container_checks import (
+    check_unfixed_vulnerabilities,
+    check_high_cvss,
+    check_high_epss,
+    check_metadata_completeness,
+)
 
 
 def empty_summary():
@@ -137,6 +143,21 @@ def summarize(vulnerabilities, sbom_correlation=None):
     summary["intelligence_summary"] = intelligence_summary(
         vulnerabilities
     )
+
+    summary["container_checks"] = {
+        "unfixed_vulnerabilities": check_unfixed_vulnerabilities(
+            vulnerabilities
+        ),
+        "high_cvss": check_high_cvss(
+            vulnerabilities
+        ),
+        "high_epss": check_high_epss(
+            vulnerabilities
+        ),
+        "metadata_completeness": check_metadata_completeness(
+            vulnerabilities
+        ),
+    }
 
     if sbom_correlation is not None:
         summary["sbom_summary"] = sbom_summary(

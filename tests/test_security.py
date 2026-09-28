@@ -239,6 +239,74 @@ def test_security_summary_includes_intelligence_summary():
 
 
 # ---------------------------------------------------------------------------
+# container_checks
+# ---------------------------------------------------------------------------
+
+def test_security_summary_includes_container_checks():
+
+    vulnerabilities = [
+        Vulnerability(
+            "CVE-2026-0001",
+            severity="high",
+            package="openssl",
+            installed_version="1.1.1",
+            fixed_version=None,
+            intelligence=VulnerabilityIntelligence(
+                "CVE-2026-0001",
+                cvss=CVSS(
+                    version="3.1",
+                    score=8.1,
+                ),
+                epss=EPSS(
+                    score=0.8,
+                    percentile=0.95,
+                ),
+            ),
+        ),
+        Vulnerability(
+            "CVE-2026-0002",
+            severity="medium",
+            package=None,
+            installed_version=None,
+            fixed_version="2.0.0",
+        ),
+    ]
+
+    result = summarize(vulnerabilities)
+
+    assert result["container_checks"] == {
+        "unfixed_vulnerabilities": [
+            {
+                "vulnerability_id": "CVE-2026-0001",
+                "package": "openssl",
+            }
+        ],
+        "high_cvss": [
+            {
+                "vulnerability_id": "CVE-2026-0001",
+                "score": 8.1,
+            }
+        ],
+        "high_epss": [
+            {
+                "vulnerability_id": "CVE-2026-0001",
+                "score": 0.8,
+                "percentile": 0.95,
+            }
+        ],
+        "metadata_completeness": [
+            {
+                "vulnerability_id": "CVE-2026-0002",
+                "missing": [
+                    "package",
+                    "installed_version",
+                ],
+            }
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
 # weighted_risk
 # ---------------------------------------------------------------------------
 
