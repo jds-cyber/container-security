@@ -4,6 +4,10 @@ policy:
   max_critical: 0
   max_high: 10
   max_medium: 100
+  max_unfixed_vulnerabilities: 0
+  max_high_cvss: 0
+  max_high_epss: 0
+  max_metadata_issues: 0
 
 fail_on:
   - Critical

@@ -21,7 +21,15 @@ def load_policy(path):
     if not isinstance(rules, dict):
         raise ValueError("Invalid policy configuration: 'policy' must be a mapping")
 
-    valid_rules = {"max_critical", "max_high", "max_medium"}
+    valid_rules = {
+        "max_critical",
+        "max_high",
+        "max_medium",
+        "max_unfixed_vulnerabilities",
+        "max_high_cvss",
+        "max_high_epss",
+        "max_metadata_issues",
+    }
 
     for key in rules:
         if key not in valid_rules:
@@ -51,7 +59,15 @@ def load_policy(path):
             "Invalid policy configuration: 'fail_on' must be a list"
         )
 
-    valid_severities = {"critical", "high", "medium"}
+    valid_fail_on = {
+        "critical",
+        "high",
+        "medium",
+        "unfixedvulnerabilities",
+        "highcvss",
+        "highepss",
+        "metadata",
+    }
 
     for severity in policy["fail_on"]:
         if not isinstance(severity, str):
@@ -60,7 +76,7 @@ def load_policy(path):
                 "'fail_on' contains invalid severity"
             )
 
-        if severity.lower() not in valid_severities:
+        if severity.lower() not in valid_fail_on:
             raise ValueError(
                 "Invalid policy configuration: "
                 f"'fail_on' contains invalid severity: {severity}"
@@ -115,6 +131,13 @@ def evaluate(summary, policy):
         for severity in policy.get("fail_on", [])
     ]
 
+    container_rules = {
+        "UnfixedVulnerabilities": "unfixed_vulnerabilities",
+        "HighCVSS": "high_cvss",
+        "HighEPSS": "high_epss",
+        "Metadata": "metadata_completeness",
+    }
+
     failures = []
 
     for severity, rule in severity_rules.items():
@@ -128,5 +151,34 @@ def evaluate(summary, policy):
             failures.append(
                 f"{severity.capitalize()} vulnerabilities exceed limit."
             )
+
+    container_failure_messages = {
+        "unfixed_vulnerabilities": "Unfixed vulnerabilities exceed limit.",
+        "high_cvss": "High CVSS vulnerabilities exceed limit.",
+        "high_epss": "High EPSS vulnerabilities exceed limit.",
+        "metadata_completeness": "Metadata issues exceed limit.",
+    }
+
+    checks = summary.get("container_checks", {})
+
+    for fail_on_name, check_name in container_rules.items():
+        if fail_on_name.lower() not in fail_on:
+            continue
+
+        rule = {
+            "unfixed_vulnerabilities": "max_unfixed_vulnerabilities",
+            "high_cvss": "max_high_cvss",
+            "high_epss": "max_high_epss",
+            "metadata_completeness": "max_metadata_issues",
+        }[check_name]
+
+        if check_name not in checks:
+            continue
+
+        count = len(checks[check_name])
+        limit = rules.get(rule, 0)
+
+        if count > limit:
+            failures.append(container_failure_messages[check_name])
 
     return failures
