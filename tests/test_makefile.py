@@ -173,3 +173,32 @@ def test_python_scripts_use_configured_interpreter():
 
     assert "$(PYTHON) ./scripts/summarize.py" in content
     assert "$(PYTHON) ./scripts/report.py" in content
+
+
+# ============================================================
+# SBOM configuration
+# ============================================================
+
+def test_makefile_defines_sbom_paths():
+    content = MAKEFILE.read_text()
+
+    assert "SBOM_DIR ?= sbom" in content
+    assert "LATEST_SBOM_DIR ?= $(SBOM_DIR)/latest" in content
+    assert "SBOM ?= $(LATEST_SBOM_DIR)/sbom.json" in content
+
+
+def test_summarize_target_passes_sbom():
+    content = MAKEFILE.read_text()
+
+    lines = content.splitlines()
+
+    summarize_index = next(
+        i for i, line in enumerate(lines)
+        if line.startswith("summarize:")
+    )
+
+    summarize_block = "\n".join(
+        lines[summarize_index:summarize_index + 9]
+    )
+
+    assert '--sbom "$(SBOM)"' in summarize_block

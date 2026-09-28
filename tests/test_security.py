@@ -1,4 +1,5 @@
 from lib.security import (
+    sbom_summary,
     summarize,
     weighted_risk,
     security_score,
@@ -335,3 +336,61 @@ def test_risk_level():
     assert risk_level(75) == "MODERATE"
     assert risk_level(55) == "HIGH"
     assert risk_level(25) == "CRITICAL"
+
+
+# ============================================================
+# SBOM Summary
+# ============================================================
+
+def test_sbom_summary_counts_correlation():
+    correlation = [
+        {
+            "vulnerability_id": "CVE-2026-1234",
+            "package": "openssl",
+            "installed_version": "1.1.1",
+            "sbom_match": True,
+        },
+        {
+            "vulnerability_id": "CVE-2026-5678",
+            "package": "curl",
+            "installed_version": "8.0.0",
+            "sbom_match": False,
+        },
+    ]
+
+    summary = sbom_summary(correlation)
+
+    assert summary == {
+        "total": 2,
+        "matched": 1,
+        "unmatched": 1,
+    }
+
+
+def test_summarize_includes_sbom_summary_when_provided():
+    vulnerability = Vulnerability(
+        "CVE-2026-1234",
+        severity="high",
+        package="openssl",
+        installed_version="1.1.1",
+    )
+
+    correlation = [
+        {
+            "vulnerability_id": "CVE-2026-1234",
+            "package": "openssl",
+            "installed_version": "1.1.1",
+            "sbom_match": True,
+        }
+    ]
+
+    summary = summarize(
+        [vulnerability],
+        sbom_correlation=correlation,
+    )
+
+    assert summary["sbom_summary"] == {
+        "total": 1,
+        "matched": 1,
+        "unmatched": 0,
+    }

@@ -26,6 +26,10 @@ from lib.scanner import (
     load_scan_report,
     parse_scan,
 )
+from lib.sbom import (
+    load_sbom,
+    correlate_vulnerabilities,
+)
 
 
 def load_intelligence_records(path):
@@ -69,6 +73,11 @@ def main():
         "--scanner",
         required=True,
         help="Scanner name",
+    )
+
+    parser.add_argument(
+        "--sbom",
+        help="Path to Syft SBOM JSON",
     )
 
     parser.add_argument(
@@ -149,6 +158,18 @@ def main():
             report,
         )
 
+        correlation = None
+
+        if args.sbom:
+            packages = load_sbom(
+                Path(args.sbom)
+            )
+
+            correlation = correlate_vulnerabilities(
+                vulnerabilities,
+                packages,
+            )
+
         if intelligence_providers:
             enrich_vulnerabilities(
                 vulnerabilities,
@@ -167,7 +188,8 @@ def main():
         return 1
 
     summary = summarize(
-        vulnerabilities=vulnerabilities
+        vulnerabilities=vulnerabilities,
+        sbom_correlation=correlation,
     )
 
     summary["weighted_risk"] = weighted_risk(summary)

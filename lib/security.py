@@ -74,7 +74,27 @@ def intelligence_summary(vulnerabilities):
     return summary
 
 
-def summarize(vulnerabilities):
+def sbom_summary(correlation):
+    """
+    Summarize SBOM vulnerability correlation.
+    """
+
+    total = len(correlation)
+
+    matched = sum(
+        1
+        for result in correlation
+        if result.get("sbom_match") is True
+    )
+
+    return {
+        "total": total,
+        "matched": matched,
+        "unmatched": total - matched,
+    }
+
+
+def summarize(vulnerabilities, sbom_correlation=None):
     """
     Extract vulnerability summary counts from normalized vulnerabilities.
     """
@@ -117,6 +137,11 @@ def summarize(vulnerabilities):
     summary["intelligence_summary"] = intelligence_summary(
         vulnerabilities
     )
+
+    if sbom_correlation is not None:
+        summary["sbom_summary"] = sbom_summary(
+            sbom_correlation
+        )
 
     return summary
 
