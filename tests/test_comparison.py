@@ -1,8 +1,10 @@
+import pytest
 from lib.comparison import (
     compare_scores,
     compare_vulnerabilities,
     compare_severity,
     compare_intelligence,
+    compare_packages,
 )
 
 
@@ -363,3 +365,94 @@ def test_compare_intelligence_handles_missing_summary():
     assert result["enriched"]["current"] == 0
     assert result["unenriched"]["previous"] == 0
     assert result["unenriched"]["current"] == 0
+
+
+# ============================================================
+# Package comparison
+# ============================================================
+
+
+def test_compare_packages_detects_added_packages():
+    previous = {
+        "packages": [
+            {"name": "openssl", "version": "1.0"},
+        ],
+    }
+
+    current = {
+        "packages": [
+            {"name": "openssl", "version": "1.0"},
+            {"name": "curl", "version": "8.0"},
+        ],
+    }
+
+    result = compare_packages(previous, current)
+
+    assert result == {
+        "added": [("curl", "8.0")],
+        "removed": [],
+        "unchanged": [("openssl", "1.0")],
+    }
+
+
+def test_compare_packages_detects_removed_packages():
+    previous = {
+        "packages": [
+            {"name": "openssl", "version": "1.0"},
+            {"name": "curl", "version": "8.0"},
+        ],
+    }
+
+    current = {
+        "packages": [
+            {"name": "openssl", "version": "1.0"},
+        ],
+    }
+
+    result = compare_packages(previous, current)
+
+    assert result == {
+        "added": [],
+        "removed": [("curl", "8.0")],
+        "unchanged": [("openssl", "1.0")],
+    }
+
+
+def test_compare_packages_normalizes_package_names():
+    previous = {
+        "packages": [
+            {"name": " OpenSSL ", "version": "1.0"},
+        ],
+    }
+
+    current = {
+        "packages": [
+            {"name": "openssl", "version": "1.0"},
+        ],
+    }
+
+    result = compare_packages(previous, current)
+
+    assert result == {
+        "added": [],
+        "removed": [],
+        "unchanged": [("openssl", "1.0")],
+    }
+
+
+def test_compare_packages_rejects_invalid_package():
+    previous = {
+        "packages": [
+            {"name": "openssl"},
+        ],
+    }
+
+    current = {
+        "packages": [],
+    }
+
+    with pytest.raises(
+        ValueError,
+        match="Invalid package version",
+    ):
+        compare_packages(previous, current)

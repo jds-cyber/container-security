@@ -9,6 +9,7 @@ from lib.comparison import (
     compare_vulnerabilities,
     compare_severity,
     compare_intelligence,
+    compare_packages,
 )
 
 
@@ -200,6 +201,10 @@ def security_comparison(previous, current):
         previous,
         current,
     )
+    package_comparison = compare_packages(
+        previous,
+        current,
+    )
 
     severity_improved = 0
     severity_regressed = 0
@@ -228,6 +233,7 @@ def security_comparison(previous, current):
         "vulnerabilities": vulnerability_comparison,
         "severity": severity_comparison,
         "intelligence": intelligence_comparison,
+        "packages": package_comparison,
         "severity_summary": {
             "improved": severity_improved,
             "regressed": severity_regressed,

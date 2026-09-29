@@ -239,3 +239,55 @@ def compare_intelligence(previous, current):
         }
 
     return comparison
+
+
+def compare_packages(previous, current):
+    """
+    Compare package inventories between two scans.
+    """
+
+    if not isinstance(previous, dict):
+        raise ValueError("Invalid comparison summary: expected dict")
+
+    if not isinstance(current, dict):
+        raise ValueError("Invalid comparison summary: expected dict")
+
+    previous_packages = previous.get("packages", [])
+    current_packages = current.get("packages", [])
+
+    if not isinstance(previous_packages, list):
+        raise ValueError("Invalid packages in comparison summary: expected list")
+
+    if not isinstance(current_packages, list):
+        raise ValueError("Invalid packages in comparison summary: expected list")
+
+    def package_key(package):
+        if not isinstance(package, dict):
+            raise ValueError("Invalid package in comparison summary: expected dict")
+
+        name = package.get("name")
+        version = package.get("version")
+
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("Invalid package name in comparison summary: expected str")
+
+        if not isinstance(version, str) or not version.strip():
+            raise ValueError("Invalid package version in comparison summary: expected str")
+
+        return name.strip().lower(), version.strip()
+
+    previous_keys = {
+        package_key(package)
+        for package in previous_packages
+    }
+
+    current_keys = {
+        package_key(package)
+        for package in current_packages
+    }
+
+    return {
+        "added": sorted(current_keys - previous_keys),
+        "removed": sorted(previous_keys - current_keys),
+        "unchanged": sorted(previous_keys & current_keys),
+    }

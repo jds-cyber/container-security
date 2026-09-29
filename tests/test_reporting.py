@@ -696,6 +696,42 @@ def test_security_comparison_includes_intelligence():
 
 
 # ============================================================
+# Package comparison
+# ============================================================
+
+def test_security_comparison_includes_package_comparison():
+    previous = {
+        "security_score": 5.0,
+        "vulnerability_ids": [],
+        "severity": {},
+        "intelligence": {},
+        "packages": [
+            {"name": "openssl", "version": "3.0.1"},
+        ],
+    }
+
+    current = {
+        "security_score": 5.0,
+        "vulnerability_ids": [],
+        "severity": {},
+        "intelligence": {},
+        "packages": [
+            {"name": "openssl", "version": "3.0.2"},
+        ],
+    }
+
+    comparison = security_comparison(previous, current)
+
+    assert comparison["packages"]["added"] == [
+        ("openssl", "3.0.2"),
+    ]
+    assert comparison["packages"]["removed"] == [
+        ("openssl", "3.0.1"),
+    ]
+    assert comparison["packages"]["unchanged"] == []
+
+
+# ============================================================
 # security_score_trend
 # ============================================================
 
