@@ -100,7 +100,7 @@ def sbom_summary(correlation):
     }
 
 
-def summarize(vulnerabilities, sbom_correlation=None):
+def summarize(vulnerabilities, sbom_correlation=None, packages=None):
     """
     Extract vulnerability summary counts from normalized vulnerabilities.
     """
@@ -163,6 +163,9 @@ def summarize(vulnerabilities, sbom_correlation=None):
         summary["sbom_summary"] = sbom_summary(
             sbom_correlation
         )
+
+    if packages is not None:
+        summary["packages"] = packages
 
     return summary
 

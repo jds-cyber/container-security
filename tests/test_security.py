@@ -462,3 +462,22 @@ def test_summarize_includes_sbom_summary_when_provided():
         "matched": 1,
         "unmatched": 0,
     }
+
+
+def test_summarize_includes_packages_when_provided():
+    vulnerabilities = []
+    packages = [
+        {
+            "name": "openssl",
+            "version": "3.0.2",
+            "type": "deb",
+            "purl": "pkg:deb/ubuntu/openssl@3.0.2",
+        }
+    ]
+
+    summary = summarize(
+        vulnerabilities,
+        packages=packages,
+    )
+
+    assert summary["packages"] == packages

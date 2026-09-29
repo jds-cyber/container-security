@@ -158,6 +158,7 @@ def main():
             report,
         )
 
+        packages = None
         correlation = None
 
         if args.sbom:
@@ -188,8 +189,9 @@ def main():
         return 1
 
     summary = summarize(
-        vulnerabilities=vulnerabilities,
+        vulnerabilities,
         sbom_correlation=correlation,
+        packages=packages,
     )
 
     summary["weighted_risk"] = weighted_risk(summary)

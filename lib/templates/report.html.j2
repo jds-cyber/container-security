@@ -301,6 +301,44 @@ td,th{
                 </tr>
             </table>
 
+            <h3 style="margin-top: 25px;">Package Inventory Comparison</h3>
+            <table>
+                <tr>
+                    <th>Change</th>
+                    <th>Count</th>
+                </tr>
+                <tr>
+                    <td>Packages Added</td>
+                    <td>{{ comparison.packages.added | length }}</td>
+                </tr>
+                <tr>
+                    <td>Packages Removed</td>
+                    <td>{{ comparison.packages.removed | length }}</td>
+                </tr>
+                <tr>
+                    <td>Packages Unchanged</td>
+                    <td>{{ comparison.packages.unchanged | length }}</td>
+                </tr>
+            </table>
+
+            {% if comparison.packages.added %}
+                <h4>Added Packages</h4>
+                <ul>
+                    {% for package in comparison.packages.added %}
+                        <li>{{ package[0] }} {{ package[1] }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% if comparison.packages.removed %}
+                <h4>Removed Packages</h4>
+                <ul>
+                    {% for package in comparison.packages.removed %}
+                        <li>{{ package[0] }} {{ package[1] }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
         {% else %}
             <p>No previous scan available for comparison.</p>
         {% endif %}
