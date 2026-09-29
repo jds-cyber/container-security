@@ -134,8 +134,8 @@ requirements.txt
 Clone the repository and create a Python virtual environment:
 
 ```bash
-git clone https://github.com/jds-cyber/container-security-toolkit.git
-cd container-security-toolkit
+git clone https://github.com/jds-cyber/container-security.git
+cd container-security
 
 python3 -m venv .venv
 source .venv/bin/activate
