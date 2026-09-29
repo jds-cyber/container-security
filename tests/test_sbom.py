@@ -10,19 +10,12 @@ from lib.sbom import (
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "sbom.sh"
-CONFIG = ROOT / "config" / "config.env"
 CONFIG_EXAMPLE = ROOT / "config" / "config.env.example"
 
 
 # ============================================================
 # Configuration
 # ============================================================
-
-def test_config_defines_syft_image():
-    content = CONFIG.read_text()
-
-    assert "SYFT_IMAGE=registry.access.redhat.com/hi/syft:latest" in content
-
 
 def test_example_config_defines_syft_image():
     content = CONFIG_EXAMPLE.read_text()

@@ -802,3 +802,72 @@ def test_summarize_rejects_intelligence_with_epss(tmp_path):
         "--intelligence cannot be combined with "
         "--osv or --epss."
     ) in result.stderr
+
+
+# ============================================================
+# Summarize - SBOM integration
+# ============================================================
+
+def test_summarize_includes_sbom_package_inventory(tmp_path):
+    report_file = tmp_path / "report.json"
+    sbom_file = tmp_path / "sbom.json"
+    policy_file = tmp_path / "policy.yml"
+
+    write_report(report_file)
+
+    sbom_file.write_text(
+        json.dumps(
+            {
+                "artifacts": [
+                    {
+                        "name": "openssl",
+                        "version": "3.0.2",
+                        "type": "deb",
+                        "purl": "pkg:deb/ubuntu/openssl@3.0.2",
+                    }
+                ]
+            }
+        )
+    )
+
+    policy_file.write_text(
+        """
+policy:
+  max_critical: 0
+  max_high: 10
+  max_medium: 100
+
+fail_on:
+  - Critical
+"""
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SUMMARIZE_SCRIPT),
+            str(report_file),
+            "--scanner",
+            "grype",
+            "--policy",
+            str(policy_file),
+            "--sbom",
+            str(sbom_file),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+
+    assert result.returncode == 0
+
+    summary = json.loads(result.stdout)
+
+    assert summary["packages"] == [
+        {
+            "name": "openssl",
+            "version": "3.0.2",
+            "type": "deb",
+            "purl": "pkg:deb/ubuntu/openssl@3.0.2",
+        }
+    ]

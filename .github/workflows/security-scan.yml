@@ -64,12 +64,13 @@ jobs:
           docker build -t "$IMAGE_NAME" .
 
       - name: Install Grype
+        id: grype
         uses: anchore/scan-action/download-grype@8576240a41341d866dbd7ebc72cd9fc0ef023f54
 
       - name: Scan container image
         run: |
           mkdir -p reports/latest
-          grype "$IMAGE_NAME" \
+          "${{ steps.grype.outputs.cmd }}" "$IMAGE_NAME" \
             -o json \
             > reports/latest/report.json
 

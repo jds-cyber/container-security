@@ -1,13 +1,17 @@
+import json
 import os
 import subprocess
 import sys
-import json 
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
 REPORT_SCRIPT = ROOT / "scripts" / "report.py"
 
+
+# ============================================================
+# Argument Validation
+# ============================================================
 
 def test_report_requires_arguments():
     result = subprocess.run(
@@ -36,6 +40,10 @@ def test_report_rejects_empty_image():
     assert result.returncode == 1
     assert "Image name cannot be empty" in result.stdout
 
+
+# ============================================================
+# Report Generation
+# ============================================================
 
 def test_report_generates_successfully(tmp_path):
     summary_file = tmp_path / "summary.json"
@@ -77,7 +85,7 @@ def test_report_generates_successfully(tmp_path):
         capture_output=True,
         text=True,
         cwd=ROOT,
-        env=env
+        env=env,
     )
 
     assert result.returncode == 0
@@ -146,8 +154,11 @@ def test_report_contains_scan_metadata(tmp_path):
     assert history["scan_timestamp"] in content
 
 
-def test_report_rejects_missing_summary_file(tmp_path):
+# ============================================================
+# Input Validation
+# ============================================================
 
+def test_report_rejects_missing_summary_file(tmp_path):
     output_file = tmp_path / "report.html"
 
     result = subprocess.run(
@@ -168,13 +179,10 @@ def test_report_rejects_missing_summary_file(tmp_path):
 
 
 def test_report_rejects_invalid_json(tmp_path):
-
     summary_file = tmp_path / "summary.json"
     output_file = tmp_path / "report.html"
 
-    summary_file.write_text(
-        "{ invalid json"
-    )
+    summary_file.write_text("{ invalid json")
 
     result = subprocess.run(
         [
@@ -194,7 +202,6 @@ def test_report_rejects_invalid_json(tmp_path):
 
 
 def test_report_rejects_invalid_summary_structure(tmp_path):
-
     summary_file = tmp_path / "summary.json"
     output_file = tmp_path / "report.html"
 
@@ -220,7 +227,6 @@ def test_report_rejects_invalid_summary_structure(tmp_path):
 
 
 def test_report_rejects_empty_summary(tmp_path):
-
     summary_file = tmp_path / "summary.json"
     output_file = tmp_path / "report.html"
 
@@ -242,6 +248,10 @@ def test_report_rejects_empty_summary(tmp_path):
     assert result.returncode == 1
     assert "Invalid summary structure" in result.stdout
 
+
+# ============================================================
+# History and Trends
+# ============================================================
 
 def test_report_uses_configured_history_for_trend(tmp_path):
     history_dir = tmp_path / "custom-history"
@@ -340,6 +350,10 @@ def test_report_uses_configured_history_for_trend(tmp_path):
     assert "Security Score Trend" in content
 
 
+# ============================================================
+# Previous Scan Comparison
+# ============================================================
+
 def test_report_includes_previous_scan_comparison(tmp_path):
     history_dir = tmp_path / "history"
 
@@ -436,3 +450,112 @@ def test_report_includes_previous_scan_comparison(tmp_path):
     assert "70" in content
     assert "90" in content
     assert "Improved" in content
+
+
+# ============================================================
+# SBOM Package Integration
+# ============================================================
+
+def test_report_renders_package_inventory_comparison(tmp_path):
+    history_dir = tmp_path / "history"
+
+    first_summary = tmp_path / "first.json"
+    first_output = tmp_path / "first.html"
+
+    first_summary.write_text(
+        json.dumps(
+            {
+                "findings": 0,
+                "unique_vulnerabilities": 0,
+                "critical": 0,
+                "high": 0,
+                "medium": 0,
+                "low": 0,
+                "negligible": 0,
+                "unknown": 0,
+                "weighted_risk": 0,
+                "security_score": 100,
+                "grade": "A",
+                "vulnerability_ids": [],
+                "packages": [
+                    {
+                        "name": "openssl",
+                        "version": "3.0.1",
+                        "type": "deb",
+                        "purl": "pkg:deb/ubuntu/openssl@3.0.1",
+                    }
+                ],
+            }
+        )
+    )
+
+    env = dict(os.environ)
+    env["CONTAINER_SECURITY_HISTORY"] = str(history_dir)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPORT_SCRIPT),
+            str(first_summary),
+            str(first_output),
+            "test-image:latest",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        env=env,
+    )
+
+    assert result.returncode == 0
+
+    second_summary = tmp_path / "second.json"
+    second_output = tmp_path / "second.html"
+
+    second_summary.write_text(
+        json.dumps(
+            {
+                "findings": 0,
+                "unique_vulnerabilities": 0,
+                "critical": 0,
+                "high": 0,
+                "medium": 0,
+                "low": 0,
+                "negligible": 0,
+                "unknown": 0,
+                "weighted_risk": 0,
+                "security_score": 100,
+                "grade": "A",
+                "vulnerability_ids": [],
+                "packages": [
+                    {
+                        "name": "openssl",
+                        "version": "3.0.2",
+                        "type": "deb",
+                        "purl": "pkg:deb/ubuntu/openssl@3.0.2",
+                    }
+                ],
+            }
+        )
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPORT_SCRIPT),
+            str(second_summary),
+            str(second_output),
+            "test-image:latest",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        env=env,
+    )
+
+    assert result.returncode == 0
+
+    content = second_output.read_text()
+
+    assert "Package Inventory Comparison" in content
+    assert "openssl 3.0.2" in content
+    assert "openssl 3.0.1" in content
