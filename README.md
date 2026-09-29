@@ -1,46 +1,72 @@
 # Container Security Toolkit
 
-A container security scanning and reporting toolkit built around **Grype**, with vulnerability analysis, security policy enforcement, historical tracking, comparison reporting, and automated CI/CD integration.
+A container security scanning and reporting toolkit built around **Grype**, with vulnerability analysis, SBOM generation and correlation, security policy enforcement, historical tracking, image comparison, security intelligence, and automated CI/CD integration.
 
-The project is designed to provide a repeatable security pipeline for scanning container images and producing actionable security reports.
+The project provides a repeatable security pipeline for scanning container images, analyzing vulnerabilities, generating security reports, and enforcing security policies.
 
 ## Features
 
-* **Grype vulnerability scanning**
+* **Container vulnerability scanning**
 
-  * Container image vulnerability detection
+  * Grype-based container image scanning
   * JSON and table scan output
   * Automated vulnerability database updates
+  * Scanner-neutral vulnerability model
+
+* **SBOM support**
+
+  * Syft-based SBOM generation
+  * Package inventory tracking
+  * Vulnerability-to-package correlation
+  * Package inventory comparison between scans
+
+* **Vulnerability intelligence**
+
+  * CVSS scoring
+  * EPSS scoring
+  * OSV vulnerability intelligence
+  * External intelligence enrichment
+  * Support for CVE, GHSA, and Go vulnerability identifiers
+
+* **Security analysis**
+
+  * Severity-based vulnerability analysis
+  * Risk-weighted security scoring
+  * Security grades and risk levels
+  * Additional container security checks
 
 * **Security policy enforcement**
 
-  * Configurable severity thresholds
-  * Critical/High/Medium/Low vulnerability analysis
-  * Automated pass/fail decisions
-
-* **Security scoring**
-
-  * Risk-based security score
-  * Severity-weighted vulnerability analysis
+  * Configurable vulnerability thresholds
+  * Critical/High/Medium/Low severity controls
+  * CVSS and EPSS policy controls
+  * Unfixed vulnerability controls
+  * Metadata quality controls
 
 * **Reporting**
 
   * JSON security summaries
   * HTML security reports
   * Scan metadata
+  * Security score and risk information
   * Historical scan tracking
+  * Previous-scan comparison
 
-* **Security comparison**
+* **Image comparison**
 
-  * Detect changes between scans
-  * Identify new, resolved, and persistent vulnerabilities
-  * Track security trends over time
+  * Compare security scores
+  * Compare vulnerability changes
+  * Compare severity changes
+  * Compare vulnerability intelligence
+  * Compare package inventories
+  * Identify added, removed, and persistent findings
 
 * **Automation**
 
   * Makefile-based workflow
   * Automated test suite
   * GitHub Actions CI/CD pipeline
+  * Security artifacts retained from CI runs
 
 * **Corporate environment support**
 
@@ -59,11 +85,17 @@ container-security/
 │   └── security_policy.yml
 ├── lib/
 │   ├── comparison.py
+│   ├── container_checks.py
+│   ├── epss.py
 │   ├── history.py
+│   ├── intelligence.py
+│   ├── osv.py
 │   ├── policy.py
 │   ├── reporting.py
+│   ├── sbom.py
+│   ├── scanner.py
 │   ├── security.py
-│   ├── trends.py
+│   ├── vulnerability.py
 │   └── templates/
 │       └── report.html.j2
 ├── scripts/
@@ -87,8 +119,15 @@ Generated scan artifacts such as reports, SBOMs, logs, caches, and local configu
 * Python 3
 * Docker
 * Git
-* Grype container image
+* Grype
+* Syft
 * Bash
+
+Python dependencies are defined in:
+
+```text
+requirements.txt
+```
 
 ## Setup
 
@@ -118,43 +157,133 @@ For environments requiring a corporate CA certificate, place the certificate und
 
 Corporate certificates and other private credentials should never be committed to the repository.
 
-## Running a Scan
+## Makefile Workflow
 
-The primary workflow can be run through the Makefile.
+The primary local workflow is provided through the Makefile.
+
+### Install dependencies
+
+```bash
+make install
+```
+
+### Run tests
+
+```bash
+make test
+```
+
+### Scan an image
 
 ```bash
 make scan IMAGE=pywinrm-ansible:dev
 ```
 
-The scan will:
-
-1. Validate the local environment
-2. Update the Grype vulnerability database
-3. Scan the specified container image
-4. Generate scan artifacts
-5. Store the scan in the reports directory
-
-## Generate a Summary
-
-After scanning:
+### Generate a summary
 
 ```bash
 make summarize
 ```
 
-This generates:
+### Generate an HTML report
+
+```bash
+make report
+```
+
+### Run the complete security workflow
+
+```bash
+make security-report IMAGE=pywinrm-ansible:dev
+```
+
+The complete workflow performs the scan, generates the security summary, and produces the HTML report.
+
+## Vulnerability Summary
+
+The summary CLI accepts a scanner report and requires the scanner that produced it:
+
+```bash
+./scripts/summarize.py \
+  reports/latest/report.json \
+  --scanner grype
+```
+
+The resulting summary is written to:
 
 ```text
 reports/latest/summary.json
 ```
 
-The summary contains vulnerability counts and the calculated security score.
+The summary includes vulnerability counts, security scoring, risk information, and policy results.
 
-## Generate an HTML Report
+### SBOM Correlation
+
+A Syft SBOM can be supplied to correlate vulnerabilities with installed packages:
 
 ```bash
-make report
+./scripts/summarize.py \
+  reports/latest/report.json \
+  --scanner grype \
+  --sbom reports/latest/sbom.json
 ```
+
+### Security Policy
+
+A policy can be supplied explicitly:
+
+```bash
+./scripts/summarize.py \
+  reports/latest/report.json \
+  --scanner grype \
+  --policy config/security_policy.yml
+```
+
+### Vulnerability Intelligence
+
+External vulnerability intelligence can be supplied through an intelligence file:
+
+```bash
+./scripts/summarize.py \
+  reports/latest/report.json \
+  --scanner grype \
+  --intelligence intelligence.json
+```
+
+OSV and EPSS enrichment can also be requested directly:
+
+```bash
+./scripts/summarize.py \
+  reports/latest/report.json \
+  --scanner grype \
+  --osv \
+  --epss
+```
+
+These options allow vulnerability findings to be enriched with additional information without coupling the core vulnerability model to a specific intelligence provider.
+
+## HTML Reporting
+
+Generate an HTML report from a completed security summary:
+
+```bash
+./scripts/report.py \
+  reports/latest/summary.json \
+  reports/latest/report.html \
+  pywinrm-ansible:dev
+```
+
+The report includes:
+
+* Scan metadata
+* Vulnerability findings
+* Severity distribution
+* Security score
+* Risk level and grade
+* Policy status
+* Historical information
+* Previous-scan comparison
+* Package inventory comparison when previous SBOM data is available
 
 The generated report is written to:
 
@@ -162,27 +291,23 @@ The generated report is written to:
 reports/latest/report.html
 ```
 
-The report contains scan metadata, policy status, vulnerability information, and security scoring.
+## Historical Tracking and Comparison
 
-## Run the Complete Security Workflow
+The toolkit can retain scan history and compare a current scan with a previous scan.
 
-The complete local workflow can be run with:
+Comparisons include:
 
-```bash
-make security-report IMAGE=pywinrm-ansible:dev
-```
+* Security score changes
+* New vulnerabilities
+* Resolved vulnerabilities
+* Persistent vulnerabilities
+* Severity changes
+* Vulnerability intelligence changes
+* Added packages
+* Removed packages
+* Unchanged packages
 
-This performs the scan, summary generation, and HTML report generation as a single workflow.
-
-## Run Tests
-
-The project includes automated tests covering scanning logic, policy evaluation, reporting, history, comparisons, and trends.
-
-```bash
-pytest
-```
-
-The test suite should pass before changes are committed.
+This provides a way to track whether the security posture of an image is changing over time rather than evaluating each scan in isolation.
 
 ## Security Policy
 
@@ -192,9 +317,25 @@ Security thresholds are defined in:
 config/security_policy.yml
 ```
 
-The policy determines whether a scan passes or fails based on vulnerability severity.
+Example:
 
-A policy failure does **not** necessarily mean that report generation must stop. The pipeline is designed to preserve the scan results and generate reporting artifacts even when security thresholds are exceeded.
+```yaml
+policy:
+  max_critical: 0
+  max_high: 10
+  max_medium: 100
+  max_unfixed_vulnerabilities: 0
+  max_high_cvss: 0
+  max_high_epss: 0
+  max_metadata_issues: 0
+
+fail_on:
+  - Critical
+```
+
+Policy evaluation is separate from report generation.
+
+A policy failure can still produce a security summary and HTML report. In CI/CD, the workflow preserves those artifacts and then enforces the policy as a final step.
 
 ## CI/CD
 
@@ -207,13 +348,46 @@ GitHub Actions automatically executes the security workflow defined in:
 The workflow:
 
 1. Checks out the repository
-2. Builds/scans the target image
-3. Generates a vulnerability summary
-4. Generates the HTML security report
-5. Uploads security artifacts
-6. Enforces the configured security policy
+2. Installs Python dependencies
+3. Runs the automated test suite
+4. Builds the target container image
+5. Installs and runs Grype
+6. Generates the vulnerability summary
+7. Generates the HTML security report
+8. Uploads security artifacts
+9. Enforces the configured security policy
 
-The pipeline is designed so that security-policy failures are visible while preserving the generated reporting artifacts.
+The CI workflow specifies the scanner used to generate the vulnerability report so the summary process can remain scanner-aware.
+
+Security-policy failures are reported separately from report generation so scan results and diagnostic artifacts remain available.
+
+## Testing
+
+The project includes automated tests covering:
+
+* Vulnerability modeling and validation
+* CVSS and EPSS handling
+* Vulnerability intelligence
+* OSV integration
+* SBOM generation and correlation
+* Container security checks
+* Security policy evaluation
+* Security scoring
+* Historical tracking
+* Image comparison
+* Package comparison
+* Reporting
+* CLI behavior
+* CI workflow configuration
+* Integration and security coverage
+
+Run the complete test suite with:
+
+```bash
+pytest
+```
+
+Tests should pass before changes are committed.
 
 ## Security and Secrets
 
@@ -235,9 +409,18 @@ cache/
 
 Use `config/config.env.example` as the starting point for local configuration.
 
+Never commit:
+
+* Passwords
+* API keys
+* Access tokens
+* Private certificates
+* Private keys
+* Corporate credentials
+
 ## Development Workflow
 
-The project is developed incrementally using phased changes.
+Development is organized into focused phases so that changes can be implemented and validated incrementally.
 
 Before committing changes:
 
@@ -245,6 +428,7 @@ Before committing changes:
 pytest
 git status
 git diff
+git diff --check
 ```
 
 For staged changes:
@@ -258,30 +442,25 @@ Keep commits focused on a specific feature or improvement.
 Example:
 
 ```text
-Phase 18: Improve documentation and developer setup
+Phase 95: Update project documentation
 ```
-
-## Roadmap
-
-Planned areas of development include:
-
-* Improved vulnerability trend visualization
-* Enhanced historical reporting
-* SBOM generation and analysis
-* Additional container security checks
-* Expanded policy controls
-* Improved CI/CD integration
-* Container image comparison
-* Security metrics and dashboards
-* Additional automated security tests
-* Improved developer documentation
 
 ## Project Status
 
-This project is actively being developed as a practical container-security engineering project.
+The project is being prepared for the **1.0 release**.
 
-The current implementation provides a working vulnerability scanning, policy enforcement, reporting, comparison, and CI/CD pipeline using Grype.
+The 1.0 roadmap includes:
 
-## License
+* SBOM foundation
+* SBOM vulnerability correlation
+* Container security checks
+* Security policy expansion
+* Image-to-image comparison
+* CI/CD hardening
+* Reporting and trend improvements
+* Integration and security testing
+* Documentation
+* Release candidate validation
+* Final 1.0 readiness audit
 
-License information will be added as the project is prepared for broader publication.
+After the 1.0 readiness audit, development transitions from roadmap-driven feature expansion to normal maintenance and security updates.
