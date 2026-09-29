@@ -333,6 +333,8 @@ fail_on:
   - Critical
 ```
 
+**Policy enforcement:** The numeric thresholds define limits for each check, but a check only causes the scan to fail when its corresponding category is included in `fail_on`. For example, `fail_on: [Critical]` enforces the critical threshold while still reporting other threshold values without failing the scan.
+
 Policy evaluation is separate from report generation.
 
 A policy failure can still produce a security summary and HTML report. In CI/CD, the workflow preserves those artifacts and then enforces the policy as a final step.
