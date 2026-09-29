@@ -81,7 +81,7 @@ jobs:
 
           ./scripts/summarize.py \
             reports/latest/report.json \
-            --scanner grype
+            --scanner grype \
             > reports/latest/summary.json
 
           SUMMARY_EXIT=$?
